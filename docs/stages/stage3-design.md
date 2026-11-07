@@ -52,8 +52,7 @@ Stage 4 treats the spread as model uncertainty.
 ## Q3: spin-dependent drag (team: "important to consider")
 Supported by Asai 2007 (C_D ≈ 0.15 + 0.47 S, independent of Re over 3.3–4.6×10⁵; verified) and Kray 2014 (slope ≈ 0.74 for S ≤ 0.1;
 verified), and indirectly by Bray & Kerwin. Hörzer's 0.80 slope is rejected (it is inconsistent with Asai's figure). Form:
-$C_D = C_{D0} + k_s S$, with C_D0 from the Stage 2 setting. Switch values: k_s ∈ {0, 0.47 (Asai), 0.74 (Kray)}. **The default is pending a team
-decision** (see the open questions).
+$C_D = C_{D0} + k_s S$, with C_D0 from the Stage 2 setting. Switch values: k_s ∈ {0, 0.47 (Asai), 0.74 (Kray)}. **Default: k_s = 0.47 (Asai 2007), team decision.**
 
 ## Q4: spin decay
 Model $\dot\omega = -k\,\omega\,|\vec v|/R$ (Smits & Smith, via James & Haake 2008), i.e. τ = R/(k v). Presets: none (default) /

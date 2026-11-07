@@ -36,7 +36,12 @@ docs/               # physics notes per stage
 - **Regression:** every stage reports the test-case prediction in a comparison table (`results/stage_comparison.md`).
 
 ## Open decisions (to be agreed before the relevant stage)
-1. Ball parameters (m, R): FIFA ranges (410–450 g, 68–70 cm circumference) used as priors or fixed?
+1. ~~Ball parameters (m, R)?~~ **Decided:** fixed at m = 0.43 kg, R = 0.11 m (stated assumption, no uncertainty term).
+6. **Decided (Stage 3):** spin-raised drag on by default, C_D = C_D0 + 0.47·S (Asai 2007), with switches 0 and 0.74 (Kray);
+   C_L(S) nominal = Kray Re 4.62×10⁵ curve, with the other curves and the n = 1/2 limits as switches; spin decay off by default,
+   with switches (`docs/stages/stage3-design.md`).
+7. **Decided (Stage 4):** air density nominal 1.20 kg/m³ with a prior over ≈ 1.10–1.29 kg/m³ in the uncertainty budget;
+   still air (wind neglected, stated assumption); the steady seam side force (|C_S| ≲ 0.03–0.05) as an uncertainty term.
 2. ~~Which wind-tunnel dataset for $C_D(Re)$ and $C_L(S)$?~~ **Proposed** (literature pass, see `research/literature/README.md`):
    C_D prior 0.22 ± 0.04 (Alam 2010, Asai 2007) plus a spin term; C_L(S) from Kray 2014 at Re 4.6×10⁵. Still open: a spin-decay
    source. The main Stage 3 uncertainty is C_L(S, Re) between Kray's two supercritical curves.
