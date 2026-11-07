@@ -19,6 +19,13 @@ class Ball:
 
 
 @dataclass(frozen=True)
+class Air:
+    """Still air at about 20 °C and sea level. Wind is neglected (problem statement: none given)."""
+    density: float = 1.20               # kg/m^3
+    kinematic_viscosity: float = 1.5e-5  # m^2/s (μ ≈ 1.81e-5 Pa·s)
+
+
+@dataclass(frozen=True)
 class Goal:
     """Goal frame (IFAB Law 1). Dimensions are measured between the inner edges of the posts
     and to the lower edge of the crossbar. Posts and bar are at most 12 cm wide."""
