@@ -1,0 +1,9 @@
+[project]
+name = "penalty"
+version = "0.1.0"
+description = "UPC 2026 Problem B: predicting the goal-entry point of a penalty kick"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
