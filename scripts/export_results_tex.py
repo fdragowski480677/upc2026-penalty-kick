@@ -24,6 +24,126 @@ def fmt(x, nd=2):
     return f"{x:.{nd}f}"
 
 
+def entry_macros(m, pre, d):
+    """Entry-point summary (most probable point, 68 % / 95 % intervals, outcome fractions, spin, wind) of one posterior."""
+    keys = ["Ymode", "Zmode", "Ylo", "Yhi", "Ylolo", "Yhihi", "Zlo", "Zhi", "Zlolo", "Zhihi", "Pclean", "Pframe", "Pmiss",
+            "SpinMed", "SpinLo", "SpinHi", "WindMed"]
+    if d is None:
+        m.update({pre + k: "" for k in keys}); return
+    m[f"{pre}Ymode"], m[f"{pre}Zmode"] = fmt(d["mode_yz"][0]), fmt(d["mode_yz"][1])
+    for ax in ("y", "z"):
+        A = ax.upper()
+        m[f"{pre}{A}lo"], m[f"{pre}{A}hi"] = fmt(d[ax]["p16"]), fmt(d[ax]["p84"])
+        m[f"{pre}{A}lolo"], m[f"{pre}{A}hihi"] = fmt(d[ax]["p2.5"]), fmt(d[ax]["p97.5"])
+    po = d["p_outcome"]
+    m[f"{pre}Pclean"] = fmt(100 * po.get("clean entry", 0), 1)
+    m[f"{pre}Pframe"] = fmt(100 * po.get("frame contact", 0), 1)
+    m[f"{pre}Pmiss"] = fmt(100 * po.get("miss", 0), 1)
+    sp = d["spin_rev_s"]
+    m[f"{pre}SpinMed"], m[f"{pre}SpinLo"], m[f"{pre}SpinHi"] = fmt(sp["median"], 1), fmt(sp["p16"], 1), fmt(sp["p84"], 1)
+    if "wind_speed" in d:
+        m[f"{pre}WindMed"] = fmt(d["wind_speed"]["median"], 1)
+
+
+def goal_macros(m, pre, g):
+    """Goal probability including frame impacts (run_stage5.py)."""
+    keys = ["Pgoal", "PgoalSe", "Pnear", "PinOff", "PoutOff"]
+    if g is None:
+        m.update({pre + k: "" for k in keys}); return
+    no = g["near_frame_outcomes"]
+    m[f"{pre}Pgoal"], m[f"{pre}PgoalSe"] = fmt(100 * g["p_goal"], 1), fmt(100 * g["p_goal_mc_se"], 1)
+    m[f"{pre}Pnear"] = fmt(100 * g["p_near_frame"], 1)
+    m[f"{pre}PinOff"] = fmt(100 * no.get("goal off the frame", 0), 0)
+    m[f"{pre}PoutOff"] = fmt(100 * no.get("miss off the frame", 0), 0)
+
+
+def cov_macros(m, pre, c):
+    """Simulation-based coverage of the 68 % / 95 % credible regions."""
+    if c is None:
+        m.update({pre + k: "" for k in ("sixtyeight", "ninetyfive", "n")}); return
+    m[f"{pre}sixtyeight"], m[f"{pre}ninetyfive"] = fmt(100 * c["coverage68"], 0), fmt(100 * c["coverage95"], 0)
+    m[f"{pre}n"] = str(c["n_trials"])
+
+
+SENS_LABELS = {
+    "spin_prior_loguniform_1_10": "spin prior log-uniform 1--10 rev/s",
+    "spin_drag_off": "no spin-dependent drag ($k_s=0$)",
+    "spin_drag_kray_0.74": "spin-drag slope $k_s=0.74$ (Kray)",
+    "spin_decay_asai2020": "spin decay on (Asai 2020)",
+    "no_seam_force": "no seam side force",
+    "rho_uniform_1.10_1.29": "$\\rho\\sim\\mathcal U(1.10,1.29)$ instead of venues",
+    "ball_fixed_0.43kg_0.11m": "ball fixed (0.43 kg, 0.11 m)",
+    "lift_limit_linear": "$C_L$ limit: linear (upper bound)",
+    "lift_limit_saturated": "$C_L$ limit: saturated (lower bound)",
+    "kray2014_re_interp": "$C_L$: Kray 2014, interpolated in $Re$",
+    "asai2007_re455": "$C_L$: Asai 2007, $Re=4.6\\times10^5$",
+    "asai2007_re_interp": "$C_L$: Asai 2007, interpolated in $Re$",
+    "final_kick_no_wind": "no wind",
+    "final_kick_spin_decay": "spin decay on (Asai 2020)",
+    "final_kick_rho_uniform": "$\\rho\\sim\\mathcal U(1.10,1.29)$ instead of venues",
+}
+
+
+def _sens_rows(base, cases):
+    """Shift of the median entry point (cm) and the 68 % half-widths (cm) of each case against its single-curve baseline."""
+    rows = []
+    for lab, e in cases:
+        dy = 100 * (e["median_yz"][0] - base["median_yz"][0]); dz = 100 * (e["median_yz"][1] - base["median_yz"][1])
+        wy = 50 * (e["y"]["p84"] - e["y"]["p16"]); wz = 50 * (e["z"]["p84"] - e["z"]["p16"])
+        rows.append((lab, dy, dz, wy, wz))
+    return rows
+
+
+def write_sensitivity_tables():
+    """overleaf/tab_sensitivity_stage4.tex and tab_sensitivity_final.tex (rounding and tracking noise side by side)."""
+    out = {}
+    s4 = {nz: ROOT / "results" / "stage4" / f"summary_{nz}.json" for nz in ("rounding", "tracking")}
+    if all(f.exists() for f in s4.values()):
+        rr = {}
+        for nz, f in s4.items():
+            d = json.load(open(f))
+            base = d["nominal"]["kray2014_re462"]["entry"]
+            rr[nz] = [("baseline: Kray 2014 $C_L$, $Re=4.6\\times10^5$", 0.0, 0.0, 50 * (base["y"]["p84"] - base["y"]["p16"]),
+                       50 * (base["z"]["p84"] - base["z"]["p16"]))]
+            rr[nz] += _sens_rows(base, [(SENS_LABELS[k], v["entry"]) for k, v in d["sensitivity"].items()])
+            rr[nz] += _sens_rows(base, [(SENS_LABELS[k], v["entry"]) for k, v in d["nominal"].items()
+                                        if k != "kray2014_re462"])
+        out["stage4"] = rr
+    fin = {nz: ROOT / "results" / "final" / f"summary_final_{nz}.json" for nz in ("rounding", "tracking")}
+    if all(f.exists() for f in fin.values()):
+        rr = {}
+        for nz, f in fin.items():
+            d = json.load(open(f))
+            base = _entry_of_npz(ROOT / "results" / "raw" / f"stage4_{nz}_final_kick_kray2014_re462.npz")
+            rr[nz] = [("baseline: final model, kick prior, Kray 2014 $C_L$", 0.0, 0.0, 50 * (base["y"]["p84"] - base["y"]["p16"]),
+                       50 * (base["z"]["p84"] - base["z"]["p16"]))]
+            rr[nz] += _sens_rows(base, [(SENS_LABELS[k], v["entry"]) for k, v in d["sensitivity"].items()])
+            lg = _entry_of_npz(ROOT / "results" / "raw" / f"stage4_{nz}_final_lognormal_kray2014_re462.npz")
+            rr[nz] += _sens_rows(base, [("log-normal spin prior instead of kick", lg)])
+        out["final"] = rr
+    for name, rr in out.items():
+        lines = ["% AUTO-GENERATED by scripts/export_results_tex.py",
+                 "\\begin{tabular}{@{}lrrrrrrrr@{}}\\toprule",
+                 " & \\multicolumn{4}{c}{rounding, $\\sigma=\\SI{2.9}{mm}$} & \\multicolumn{4}{c}{tracking, $\\sigma=\\SI{1}{cm}$}\\\\",
+                 "\\cmidrule(lr){2-5}\\cmidrule(l){6-9}",
+                 "Case & $\\Delta y$ & $\\Delta z$ & $\\delta y_{68}$ & $\\delta z_{68}$ & $\\Delta y$ & $\\Delta z$ & $\\delta y_{68}$ & $\\delta z_{68}$\\\\\\midrule"]
+        for (lab, *a), (_, *b) in zip(rr["rounding"], rr["tracking"]):
+            lines.append(lab + " & " + " & ".join(f"{x:+.1f}" if i < 2 else f"{x:.1f}" for i, x in enumerate(a)) + " & "
+                         + " & ".join(f"{x:+.1f}" if i < 2 else f"{x:.1f}" for i, x in enumerate(b)) + "\\\\")
+            if lab.startswith("baseline"):
+                lines.append("\\midrule")
+        lines.append("\\bottomrule\\end{tabular}")
+        (ROOT / "overleaf" / f"tab_sensitivity_{name}.tex").write_text("\n".join(lines) + "\n")
+        print("wrote", ROOT / "overleaf" / f"tab_sensitivity_{name}.tex")
+
+
+def _entry_of_npz(path):
+    e = np.load(path)["entries"]
+    e = e[np.all(np.isfinite(e), axis=1)]
+    q = lambda x: {"p16": float(np.percentile(x, 16)), "p84": float(np.percentile(x, 84))}
+    return {"median_yz": [float(np.median(e[:, 1])), float(np.median(e[:, 2]))], "y": q(e[:, 1]), "z": q(e[:, 2])}
+
+
 def main():
     m = {}
     pr, b, g = Priors(), Ball(), Goal()
@@ -53,55 +173,50 @@ def main():
     m["obsA"] = ", ".join(fmt(v, 2) for v in TEST_CASE[0].position)
     m["obsB"] = ", ".join(fmt(v, 2) for v in TEST_CASE[1].position)
     # ---- results ----
-    # Final unified model (results/final/) if present, else the Stage 4 posterior. For the final model every result macro is
-    # written once per spin prior (suffix L = log-normal, K = kick mechanics) and once unsuffixed for the headline prior.
-    status = []
+    # Stage 4 (no wind, log-normal spin prior): macros \\sfour<R|T>...; Stage 5 goal probability on the Stage 4 chains: \\sfive...;
+    # final unified model (Stage 6, wind): \\res<R|T><K|L|> (K = kick-mechanics prior, L = log-normal, unsuffixed = headline prior).
+    # Final-model macros that do not exist yet are written as \\TBD{running} so the paper always compiles.
+    for noise, key in (("rounding", "R"), ("tracking", "T")):
+        f = ROOT / "results" / "stage4" / f"summary_{noise}.json"
+        if f.exists():
+            d4 = json.load(open(f))
+            entry_macros(m, f"sfour{key}", d4["pooled"])
+            m[f"sfour{key}NtauMin"] = fmt(min(v["convergence"]["steps_over_tau"] for v in d4["nominal"].values()), 0)
+        c = ROOT / "results" / "stage4" / f"coverage_{noise}.json"
+        if c.exists():
+            cov_macros(m, f"sfourcov{key}", json.load(open(c)))
+        g = ROOT / "results" / "stage5" / f"goal_probability_{noise}.json"
+        if g.exists():
+            goal_macros(m, f"sfive{key}", json.load(open(g)))
+    for key in ("R", "T"):   # Stage 5 goal probability still computing -> placeholder
+        for t in ("Pgoal", "PgoalSe", "Pnear", "PinOff", "PoutOff"):
+            m.setdefault(f"sfive{key}{t}", "\\TBD{running}")
     final = {nz: ROOT / "results" / "final" / f"summary_final_{nz}.json" for nz in ("rounding", "tracking")}
     use_final = all(f.exists() for f in final.values())
-    sources = []
+    template = {}
+    entry_macros(template, "x", None); goal_macros(template, "x", None)
     for noise, key in (("rounding", "R"), ("tracking", "T")):
-        if use_final:
-            bsp = json.load(open(final[noise]))["by_spin_prior"]
-            for sp, suf in (("lognormal", "L"), ("kick", "K")):
-                sources.append((noise, key, suf, bsp[sp], sp))
-            sources.append((noise, key, "", bsp[HEADLINE], HEADLINE))
-        else:
-            f = ROOT / "results" / "stage4" / f"summary_{noise}.json"
-            if f.exists():
-                sources.append((noise, key, "", json.load(open(f))["pooled"], "lognormal"))
-    for noise, key0, suf, d, sp in sources:
-        key = key0 + suf
-        m[f"res{key}Ymode"], m[f"res{key}Zmode"] = fmt(d["mode_yz"][0]), fmt(d["mode_yz"][1])
-        for ax in ("y", "z"):
-            A = ax.upper()
-            m[f"res{key}{A}lo"], m[f"res{key}{A}hi"] = fmt(d[ax]["p16"]), fmt(d[ax]["p84"])
-            m[f"res{key}{A}lolo"], m[f"res{key}{A}hihi"] = fmt(d[ax]["p2.5"]), fmt(d[ax]["p97.5"])
-        po = d["p_outcome"]
-        m[f"res{key}Pclean"] = fmt(100 * po.get("clean entry", 0), 1)
-        m[f"res{key}Pframe"] = fmt(100 * po.get("frame contact", 0), 1)
-        m[f"res{key}Pmiss"] = fmt(100 * po.get("miss", 0), 1)
-        m[f"res{key}SpinMed"] = fmt(d["spin_rev_s"]["median"], 1)
-        if "wind_speed" in d:
-            m[f"res{key}WindMed"] = fmt(d["wind_speed"]["median"], 1)
-        if use_final:
+        bsp = json.load(open(final[noise]))["by_spin_prior"] if final[noise].exists() else {}
+        for sp, suf in (("lognormal", "L"), ("kick", "K"), (HEADLINE, "")):
+            pre = f"res{key}{suf}"
+            if sp in bsp:
+                entry_macros(m, pre, bsp[sp])
+                m[f"{pre}NtauMin"] = fmt(min(v["steps_over_tau"] for v in bsp[sp]["convergence"].values()), 0)
             g = ROOT / "results" / "final" / f"goal_probability_{noise}_{sp}.json"
             if g.exists():
-                m[f"res{key}Pgoal"] = fmt(100 * json.load(open(g))["p_goal"], 1)
-        status.append(noise)
-    for noise, key in (("tracking", "T"), ("rounding", "R")):
-        f = ROOT / "results" / ("final" if use_final else "stage4") / f"coverage_{noise}.json"
-        if f.exists():
-            c = json.load(open(f))
-            m[f"cov{key}sixtyeight"], m[f"cov{key}ninetyfive"] = fmt(100 * c["coverage68"], 0), fmt(100 * c["coverage95"], 0)
-            m[f"cov{key}n"] = str(c["n_trials"])
-    if not use_final:
-        for noise, key in (("rounding", "R"), ("tracking", "T")):
-            f = ROOT / "results" / "stage5" / f"goal_probability_{noise}.json"
-            if f.exists():
-                m[f"res{key}Pgoal"] = fmt(100 * json.load(open(f))["p_goal"], 1)
-    m["resHeadlinePrior"] = {"lognormal": "log-normal", "kick": "kick-mechanics"}[HEADLINE] if use_final else "log-normal"
-    m["resStatus"] = (f"final unified model (wind included), headline spin prior: {m['resHeadlinePrior']}" if use_final
-                      else "Stage 4 posterior (no wind, log-normal spin prior); preliminary, final unified model pending")
+                goal_macros(m, pre, json.load(open(g)))
+        c = ROOT / "results" / "final" / f"coverage_{noise}.json"
+        if c.exists():
+            cov_macros(m, f"cov{key}", json.load(open(c)))
+        for suf in ("L", "K", ""):
+            for t in list(template) + ["xNtauMin"]:
+                m.setdefault(f"res{key}{suf}" + t[1:], "\\TBD{running}")
+        for t in ("sixtyeight", "ninetyfive", "n"):
+            m.setdefault(f"cov{key}{t}", "\\TBD{running}")
+    m["resHeadlinePrior"] = {"lognormal": "log-normal", "kick": "kick-mechanics"}[HEADLINE]
+    m["resStatus"] = ("final unified model (wind included)" if use_final else
+                      "final unified model still running; final-model numbers marked TBD")
+    write_sensitivity_tables()
     lines = ["% AUTO-GENERATED by scripts/export_results_tex.py. Do not edit by hand; rerun the script after each production run."]
     for k, v in m.items():
         lines.append(f"\\providecommand{{\\{k}}}{{}}\\renewcommand{{\\{k}}}{{{v}}}")

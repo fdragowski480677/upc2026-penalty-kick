@@ -72,7 +72,7 @@ def fig_drag_curves():
     ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
     ax.set_xticks([5e4, 1e5, 2e5, 3e5, 5e5]); ax.set_xticklabels(["$5{\\times}10^4$", "$10^5$", "$2{\\times}10^5$", "$3{\\times}10^5$", "$5{\\times}10^5$"])
     ax.set_ylim(0, 0.55)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2, handlelength=2.2, columnspacing=1.4)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=1, handlelength=2.6, fontsize=11)
     save(fig, "drag_curves")
 
 
@@ -91,7 +91,7 @@ def fig_lift_curves():
     ax.plot(s, 16 / 3 * s, color=INK2, ls=":", lw=1.1, label="inviscid $\\frac{16}{3}S$ (2022 reports)")
     ax.set_ylim(0, 0.45); ax.set_xlim(0, 0.32)
     ax.set_xlabel("spin parameter $S=R\\omega/v$"); ax.set_ylabel("lift (Magnus) coefficient $C_L$")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2, handlelength=2.4, columnspacing=1.4)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=1, handlelength=2.6, fontsize=11)
     save(fig, "lift_curves")
 
 
@@ -140,12 +140,19 @@ def fig_setup():
     ax = fig.add_subplot(1, 2, 1, projection="3d")
     _frame3d(ax)
     ax.plot([0, 11], [0, 0], [0, 0], color=GRID, lw=0.8)
+    # example trajectory: the Stage 3 best fit (gravity + drag + Magnus at 5 rev/s) through the given positions
+    tr = _stage_fits()[2][1]
+    ax.plot(*tr, color=C["green"], lw=1.6, zorder=5, label="example trajectory\n(Stage 3 fit, 5 rev/s)")
+    ax.plot([tr[0, -1]], [tr[1, -1]], [tr[2, -1]], "x", ms=7, mew=1.6, color=C["red"], zorder=6, ls="",
+            label=f"its goal entry $(y,z)=({tr[1, -1]:.2f}, {tr[2, -1]:.2f})$ m")
+    ax.legend(loc="upper left", bbox_to_anchor=(0.02, 0.92), fontsize=7)
     pts = np.array([[0, 0, 0.11]] + [o.position for o in TEST_CASE])
     ax.plot(*pts.T, ".", ms=8, color=INK)
     for p, lab in zip(pts, ("$t=0$", "0.05 s", "0.10 s")):
-        ax.text(p[0], p[1] - 0.4, p[2] + 0.25, lab, fontsize=6, color=INK2)
+        dy, dz = (0.9, 0.15) if lab == "$t=0$" else (0.0, -0.42)       # t = 0 label beside the point, clear of the axis triad
+        ax.text(p[0] + 0.15, p[1] + dy, p[2] + dz, lab, fontsize=6, color=INK2)
     for d, lab in ((np.array([2.0, 0, 0]), "$x$"), (np.array([0, 1.8, 0]), "$y$"), (np.array([0, 0, 1.3]), "$z$")):
-        _arrow3d(ax, (0, -3.2, 0), d, INK, lab, lw=1.1, ratio=0.12, fs=9)
+        _arrow3d(ax, (1.5, -3.4, 0), d, INK, lab, lw=1.1, ratio=0.12, fs=9)
     ax.text(11, -3.66, 2.75, "goal plane $x=11$ m\n7.32 m $\\times$ 2.44 m", fontsize=6, color=INK2)
     ax.set_xlim(0, 11.5); ax.set_ylim(-4, 4); ax.set_zlim(0, 3)
     ax.set_box_aspect((11.5, 8, 3), zoom=1.0); ax.view_init(elev=20, azim=-128)
@@ -155,7 +162,9 @@ def fig_setup():
     # ---- free-body diagram ----
     ax = fig.add_subplot(1, 2, 2, projection="3d")
     u, v = np.mgrid[0:2 * np.pi:40j, 0:np.pi:20j]
-    ax.plot_wireframe(np.cos(u) * np.sin(v), np.sin(u) * np.sin(v), np.cos(v), color=GRID, lw=0.4)
+    bx, by, bz = np.cos(u) * np.sin(v), np.sin(u) * np.sin(v), np.cos(v)
+    ax.plot_surface(bx, by, bz, color="#b9c7d8", alpha=0.55, lw=0, shade=True, zorder=1)     # shaded ball, visible on white
+    ax.plot_wireframe(bx, by, bz, color="#5d6f86", lw=0.35, rstride=2, cstride=2)
     vr = np.array([1.0, 0.30, 0.20]); vr /= np.linalg.norm(vr)
     w_axis = np.array([0.25, -0.10, -0.96]); w_axis /= np.linalg.norm(w_axis)        # sidespin, axis mostly −z (test case)
     fl = np.cross(w_axis, vr); fl /= np.linalg.norm(fl)
@@ -177,9 +186,9 @@ def fig_setup():
     ax.set_xlim(-2.3, 2.3); ax.set_ylim(-2.3, 2.3); ax.set_zlim(-2.3, 2.3); ax.set_box_aspect((1, 1, 1), zoom=1.2)
     ax.view_init(elev=24, azim=-135); _clean3d(ax, ticks=False)
     ax.set_title("(b) forces on the spinning ball (schematic)", loc="left", fontsize=8)
-    fig.text(0.53, 0.03, "$\\vec F_L \\parallel \\vec\\omega\\times\\vec v_r$: clockwise sidespin (seen from above) curls the ball towards $-y$.",
-             fontsize=7, color=INK2)
-    fig.subplots_adjust(left=0.0, right=1.0, top=0.93, bottom=0.06, wspace=0.0)
+    fig.text(0.75, 0.0, "$\\vec F_L \\parallel \\vec\\omega\\times\\vec v_r$: clockwise sidespin (seen from above)\ncurls the ball towards $-y$.",
+             fontsize=10, color=INK, ha="center", va="bottom")
+    fig.subplots_adjust(left=0.0, right=1.0, top=0.93, bottom=0.10, wspace=0.0)
     save(fig, "setup")
 
 
@@ -210,6 +219,49 @@ def _stage_fits():
     sol, c = simulate(P0, q[:3], F, replace(AeroParams(), spin=spin_of(q)))
     out.append(("Stage 3: + Magnus (5 rev/s)", sol.sol(np.linspace(0, c.t, 300))[:3]))
     return out
+
+
+def fig_profile_likelihood():
+    """Profile likelihood in spin rate (Stage 3 model, tracking noise 1 cm): for each fixed |omega| the launch velocity and spin-axis
+    angle are refitted; shown are Delta chi^2 and the predicted entry point. Flat chi^2 + moving y = spin not identifiable."""
+    from dataclasses import replace
+    from scipy.optimize import least_squares
+    from penalty.constants import P0, TEST_CASE
+    from penalty.forces import AeroParams, drag, gravity, magnus
+    from penalty.integrate import positions_at, simulate
+    from penalty.inverse import spin_basis
+    F = [gravity, drag, magnus]
+    data = np.array([o.position for o in TEST_CASE]); ts = [o.t for o in TEST_CASE]
+    rows = []
+    for rev in np.r_[0.5, np.arange(1, 15.5, 1.0)]:
+        W = 2 * np.pi * rev
+
+        def spin_of(q):
+            e1, e2 = spin_basis(q[:3]); return W * (np.cos(q[3]) * e1 + np.sin(q[3]) * e2)
+
+        def res(q):
+            return ((positions_at(P0, q[:3], ts, F, replace(AeroParams(), spin=spin_of(q))) - data) / 0.01).ravel()
+        r = min((least_squares(res, [30.3, 9.2, 6.9, ph], method="lm") for ph in (-1.4, -1.7, 1.4)), key=lambda r: r.cost)
+        _, c = simulate(P0, r.x[:3], F, replace(AeroParams(), spin=spin_of(r.x)))
+        rows.append((rev, 2 * r.cost, c.position[1], c.position[2]))
+    a = np.array(rows)
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.2, 2.7))
+    a1.plot(a[:, 0], a[:, 1] - a[:, 1].min(), ".-", color=C["blue"], ms=6)
+    a1.axhline(1.0, color=INK2, lw=0.8, ls="--"); a1.text(14.8, 1.05, "$\\Delta\\chi^2=1$ (1$\\sigma$)", ha="right", va="bottom",
+                                                         fontsize=8, color=INK2)
+    a1.set_xlabel("spin rate (rev/s), held fixed"); a1.set_ylabel("$\\Delta\\chi^2$ (tracking, $\\sigma=1$ cm)")
+    a1.set_ylim(0, 4); a1.set_title("(a) the data barely prefer any spin", loc="left")
+    a2.plot(a[:, 0], a[:, 2], ".-", color=C["orange"], ms=6, label="lateral $y$")
+    a2.plot(a[:, 0], a[:, 3], ".-", color=C["green"], ms=6, label="height $z$")
+    a2.axhline(3.66, color=C["orange"], lw=1.0, ls="--")
+    a2.text(14.8, 3.6, "post, $y=3.66$ m", ha="right", va="top", fontsize=8, color=C["orange"])
+    a2.axhline(2.44, color=C["green"], lw=1.0, ls="--")
+    a2.text(0.3, 2.38, "crossbar, $z=2.44$ m", ha="left", va="top", fontsize=8, color=C["green"])
+    a2.set_xlabel("spin rate (rev/s), held fixed"); a2.set_ylabel("entry point (m)"); a2.set_ylim(1.6, 3.9)
+    a2.set_title("(b) ... but the entry point moves", loc="left"); a2.legend(loc="center right", bbox_to_anchor=(1.0, 0.62), fontsize=9)
+    fig.tight_layout(w_pad=1.5)
+    save(fig, "profile_likelihood")
+    print("profile: ", np.round(a, 3).tolist())
 
 
 def fig_stage_trajectories():
@@ -399,7 +451,7 @@ def fig_example_3d():
 
 
 FIGURES = {"setup": fig_setup, "drag_curves": fig_drag_curves, "lift_curves": fig_lift_curves, "cor_and_kick": fig_cor_and_kick,
-           "stage_trajectories": fig_stage_trajectories, "trajectories_3d": fig_trajectories_3d,
+           "stage_trajectories": fig_stage_trajectories, "profile_likelihood": fig_profile_likelihood, "trajectories_3d": fig_trajectories_3d,
            "goal_face_rounding": fig_goal_face, "example_in_off_post": fig_example_3d}
 
 
