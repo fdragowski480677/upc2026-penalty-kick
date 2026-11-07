@@ -42,6 +42,14 @@ docs/               # physics notes per stage
    with switches (`docs/stages/stage3-design.md`).
 7. **Decided (Stage 4):** air density nominal 1.20 kg/m³ with a prior over ≈ 1.10–1.29 kg/m³ in the uncertainty budget;
    still air (wind neglected, stated assumption); the steady seam side force (|C_S| ≲ 0.03–0.05) as an uncertainty term.
+8. **Decided (Stage 4 noise):** report both noise models. *Rounding only*: the given values are exact up to their 2-decimal rounding
+   (uniform ±5 mm, approximated by a Gaussian of equal variance, σ = 2.9 mm). *Tracking*: σ = 1 cm. Isotropic and independent in both cases.
+9. **Decided (Stage 5):** the flight model stays rigid. In-flight deformation is of order 0.1 mm (aerodynamic load ≈ 5–12 N against an internal
+   overpressure of ≈ 60–110 kPa), and the post-kick shell vibrations are damped within ≈ 10–20 ms, before the first observation at 0.05 s.
+   This is a stated and checked assumption. Stage 5 adds (a) an **oblique impact of the spinning ball on a post/crossbar** (restitution
+   depending on pressure, Coulomb friction, rotational inertia ⅔mR²) for the frame-contact samples, giving P(goal) including "in off the
+   frame"; and (b) a **Hertz foot–ball contact model** (Ishii 2012) as a consistency check that the inferred v0 and spin are achievable.
+   Needs literature: ball–rigid-surface impact versus pressure, oblique spinning impacts (Cross), FIFA Quality Programme ball tests.
 2. ~~Which wind-tunnel dataset for $C_D(Re)$ and $C_L(S)$?~~ **Proposed** (literature pass, see `research/literature/README.md`):
    C_D prior 0.22 ± 0.04 (Alam 2010, Asai 2007) plus a spin term; C_L(S) from Kray 2014 at Re 4.6×10⁵. Still open: a spin-decay
    source. The main Stage 3 uncertainty is C_L(S, Re) between Kray's two supercritical curves.
