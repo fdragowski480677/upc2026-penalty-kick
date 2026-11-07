@@ -39,6 +39,8 @@ class AeroParams:
     spin_decay_k: float = 0.0                                       # k in dω/dt = −k ω |v| / R
     # --- Stage 4 nuisance: steady seam/orientation side force, coefficients along e1 = ẑ×v̂ and e2 = v̂×e1 ---
     seam_coeffs: tuple = (0.0, 0.0)
+    # --- Stage 6: steady, uniform wind (ground frame) [m/s]; the aerodynamic forces act on the air-relative velocity v − w ---
+    wind: np.ndarray = field(default_factory=lambda: np.zeros(3))
 
 
 def reynolds(speed, params):
@@ -46,12 +48,20 @@ def reynolds(speed, params):
     return speed * 2.0 * params.ball.radius / params.air.kinematic_viscosity
 
 
+def _air_relative(v, params):
+    """Velocity of the ball relative to the air, v − w [theory]. All aerodynamic forces, Re and S use it (Stage 6)."""
+    w = params.wind
+    return v if not np.any(w) else v - w
+
+
 def drag(t, r, v, params, path=0.0):
     """Quadratic aerodynamic drag [theory]:  a = −(ρ C_D A / 2m) |v| v,  with A = πR².
 
     The velocity is relative to the air (no wind). C_D comes from params.drag_model at the instantaneous Re,
     so a speed-dependent model is evaluated along the trajectory, not frozen at v₀ (the B-471 issue).
+    With wind (Stage 6), v is the air-relative velocity.
     """
+    v = _air_relative(v, params)
     speed = float(np.sqrt(v @ v))
     if speed == 0.0:
         return np.zeros(3)
@@ -84,6 +94,7 @@ def magnus(t, r, v, params, path=0.0):
     The direction is ω × v (backspin gives lift up; spin about +z curves a +x-moving ball towards +y). The magnitude uses a
     measured C_L(S), never the inviscid (16/3)S, which overestimates it by about 4× (docs/research/2022-reports-analysis.md §3.2).
     """
+    v = _air_relative(v, params)
     s, w_perp = spin_parameter(v, params, path)
     if s == 0.0:
         return np.zeros(3)
@@ -104,6 +115,7 @@ def seam_force(t, r, v, params, path=0.0):
     c1, c2 = params.seam_coeffs
     if c1 == 0.0 and c2 == 0.0:
         return np.zeros(3)
+    v = _air_relative(v, params)
     speed = float(np.sqrt(v @ v))
     vh = v / speed
     e1 = np.cross([0.0, 0.0, 1.0], vh)
