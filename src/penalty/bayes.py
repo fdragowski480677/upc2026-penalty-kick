@@ -1,7 +1,8 @@
 """Stage 4: Bayesian inference of the goal-entry point.
 
-Parameters θ (12): v0 (3), spin components (a, b) ⊥ v0 [rad/s], C_D0, ρ [kg/m³], air temperature T [°C],
-ball mass m [kg], ball circumference C [m], seam coefficients (c1, c2).
+Parameters θ (14): v0 (3), spin components (a, b) ⊥ v0 [rad/s], C_D0, ρ [kg/m³], air temperature T [°C],
+ball mass m [kg], ball circumference C [m], seam coefficients (c1, c2), horizontal wind (w_x, w_y) [m/s] (Stage 6).
+(Chains saved before Stage 6 have 12 columns; they are read with zero wind.)
 Likelihood: independent Gaussian position errors, σ = 1 cm, at 0.05 s and 0.10 s (P0 exact).
 Priors (team decisions; sources in docs/stages/stage4-uncertainty.md):
 
@@ -14,6 +15,7 @@ Priors (team decisions; sources in docs/stages/stage4-uncertainty.md):
 * T ~ U(12, 35) °C, entering through ν = μ_Sutherland(T)/ρ (Re only). The T–ρ correlation is neglected in ν, which affects only the
   weak Re dependence of C_L.
 * m ~ U(0.410, 0.450) kg and C ~ U(0.68, 0.70) m (IFAB Law 2), R = C/2π (team decision). ``ball_prior="fixed"`` pins m = 0.43, R = 0.11.
+* w_x, w_y ~ N(0, wind_sd²), wind_sd = 2.0 m/s: uniform direction, Rayleigh speed with mean 2.5 m/s (generic open stadium; team decision).
 * c1, c2 ~ N(0, 0.03²).
 * v0: flat for 10 < |v0| < 45 m/s.
 
@@ -50,6 +52,7 @@ class Priors:
     ball_prior: str = "law2"               # or "fixed"
     mass_bounds: tuple = (0.410, 0.450)
     circ_bounds: tuple = (0.68, 0.70)
+    wind_sd: float = 2.0                   # m/s per horizontal component; ~1e-6 switches wind off
 
 
 _DENSITY_PRIOR = None
@@ -93,8 +96,12 @@ def unpack(theta):
 
 
 def physics(theta):
-    """θ → per-sample mass, radius and kinematic viscosity (keyword arguments for fastsim)."""
-    return {"mass": theta[:, 8], "radius": theta[:, 9] / TWO_PI, "nu": dynamic_viscosity(theta[:, 7]) / theta[:, 6]}
+    """θ → per-sample mass, radius, kinematic viscosity and wind (keyword arguments for fastsim)."""
+    wind = np.zeros((theta.shape[0], 3))
+    if theta.shape[1] >= 14:
+        wind[:, :2] = theta[:, 12:14]
+    return {"mass": theta[:, 8], "radius": theta[:, 9] / TWO_PI, "nu": dynamic_viscosity(theta[:, 7]) / theta[:, 6],
+            "wind": wind}
 
 
 def log_prior(theta, pr=Priors()):
@@ -126,6 +133,8 @@ def log_prior(theta, pr=Priors()):
             ok &= (w_rev > lo) & (w_rev < hi)
             lp_spin = -2 * np.log(W)
         lp = (lp_spin + lp_rho - (cd0 - pr.cd0_mean) ** 2 / (2 * pr.cd0_sd**2) - np.sum(seam**2, axis=1) / (2 * pr.seam_sd**2))
+        if theta.shape[1] >= 14:
+            lp = lp - np.sum(theta[:, 12:14] ** 2, axis=1) / (2 * pr.wind_sd**2)
     return np.where(ok, lp, -np.inf)
 
 
@@ -177,8 +186,9 @@ def initial_walkers(n, rng, observations=TEST_CASE, priors=Priors(), r0=P0):
     m = rng.uniform(*mb, n)
     c = rng.uniform(*cb, n)
     seam = rng.normal(0, priors.seam_sd, (n, 2))
+    wind = rng.normal(0, priors.wind_sd, (n, 2))
     v0 = v_fd + rng.normal(0, 0.3, (n, 3))
-    return np.column_stack((v0, W * np.cos(phi), W * np.sin(phi), cd0, rho, t, m, c, seam))
+    return np.column_stack((v0, W * np.cos(phi), W * np.sin(phi), cd0, rho, t, m, c, seam, wind))
 
 
 @dataclass

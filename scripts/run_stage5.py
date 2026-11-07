@@ -42,8 +42,9 @@ def sample_params(th, curve):
     ph = physics(th[None, :])
     ball = Ball(mass=float(ph["mass"][0]), radius=float(ph["radius"][0]))
     air = Air(density=float(th[6]), kinematic_viscosity=float(ph["nu"][0]))
+    wind = np.array([th[12], th[13], 0.0]) if len(th) >= 14 else np.zeros(3)
     return v0, ball, replace(AeroParams(), ball=ball, air=air, drag_model=ConstantCD(float(th[5])), spin=spin,
-                             lift_model=LIFT_MODELS[curve], seam_coeffs=(float(th[10]), float(th[11])))
+                             lift_model=LIFT_MODELS[curve], seam_coeffs=(float(th[10]), float(th[11])), wind=wind)
 
 
 def _job(args):

@@ -78,7 +78,7 @@ def test_spin_prior_is_normalised_lognormal():
     from penalty.bayes import Priors, initial_walkers, log_prior
     rng = np.random.default_rng(3)
     p0 = initial_walkers(32, rng)
-    sampler = emcee.EnsembleSampler(32, 12, lambda th: log_prior(th), vectorize=True)
+    sampler = emcee.EnsembleSampler(32, 14, lambda th: log_prior(th), vectorize=True)
     sampler.run_mcmc(p0, 3000, progress=False)
     ch = sampler.get_chain(discard=1000, flat=True)
     w = np.hypot(ch[:, 3], ch[:, 4]) / (2 * np.pi)
@@ -104,3 +104,18 @@ def test_per_sample_ball_and_viscosity_match_reference():
         _, c = simulate(P0, v0[i], FORCES, p, ball=p.ball)
         assert np.max(np.abs(fast[i] - ref)) < 1e-6
         assert np.max(np.abs(cr[i, 1:] - c.position[1:])) < 1e-6
+
+
+def test_wind_prior_and_backward_compatibility():
+    """The wind prior is a 2-D Gaussian (Rayleigh speed, uniform direction); 12-column chains read with zero wind."""
+    from penalty.bayes import Priors, initial_walkers, log_prior, physics
+    rng = np.random.default_rng(5)
+    th = initial_walkers(4000, rng)
+    assert th.shape[1] == 14
+    speed = np.hypot(th[:, 12], th[:, 13])
+    assert np.mean(speed) == pytest.approx(2.0 * np.sqrt(np.pi / 2), rel=0.05)          # Rayleigh mean ≈ 2.5 m/s
+    old = th[:5, :12]
+    assert np.all(physics(old)["wind"] == 0) and np.all(np.isfinite(log_prior(old)))
+    lp_calm = log_prior(np.column_stack((th[:5, :12], np.zeros((5, 2)))))
+    lp_windy = log_prior(np.column_stack((th[:5, :12], np.full((5, 2), 4.0))))
+    assert np.all(lp_calm - lp_windy == pytest.approx(2 * 16 / (2 * Priors().wind_sd ** 2)))

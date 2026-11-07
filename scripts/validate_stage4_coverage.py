@@ -39,7 +39,7 @@ def draw_truth(rng, pr=Priors()):
             break
     rho = rng.choice(density_prior().samples)
     return np.array([*v0, W * np.cos(phi), W * np.sin(phi), cd0, rho, rng.uniform(*pr.t_bounds), rng.uniform(*pr.mass_bounds),
-                     rng.uniform(*pr.circ_bounds), *rng.normal(0, pr.seam_sd, 2)])
+                     rng.uniform(*pr.circ_bounds), *rng.normal(0, pr.seam_sd, 2), *rng.normal(0, pr.wind_sd, 2)])
 
 
 def trial(args):
@@ -78,7 +78,8 @@ def main():
     se68, se95 = np.sqrt(0.68 * 0.32 / n), np.sqrt(0.95 * 0.05 / n)
     out = {"noise": a.noise, "n_trials": n, "coverage68": c68, "binomial_se68": se68, "coverage95": c95,
            "binomial_se95": se95, "chains": kw, "trials": sorted(rows, key=lambda r: r["trial"])}
-    path = ROOT / "results" / "stage4" / f"coverage_{a.noise}.json"
+    # The default priors are the final unified model (with wind); Stage 4 coverage results stay in results/stage4/.
+    path = ROOT / "results" / "final" / f"coverage_{a.noise}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(out, indent=2))
     print(f"{a.noise}: n = {n}, coverage 68 % = {c68:.2f} ± {se68:.2f}, coverage 95 % = {c95:.2f} ± {se95:.2f}")
