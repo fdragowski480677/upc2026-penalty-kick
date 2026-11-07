@@ -83,7 +83,7 @@ def frame_gap(p, ball=Ball(), goal=Goal(), rp=0.06):
     return best, normal
 
 
-def resolve(r0, v0, forces, params, ball=Ball(), goal=Goal(), imp=FrameImpact(), t_max=1.5, max_impacts=3):
+def resolve(r0, v0, forces, params, ball=Ball(), goal=Goal(), imp=FrameImpact(), t_max=1.5, max_impacts=3, record=False):
     """Fly from (r0, v0) with ``params.spin``, handling impacts on the frame, until the outcome is decided.
 
     Returns (outcome, info). Outcomes: CLEAN_GOAL / GOAL_OFF_FRAME (whole ball over the line inside the frame after ≥ 1 frame
@@ -93,6 +93,7 @@ def resolve(r0, v0, forces, params, ball=Ball(), goal=Goal(), imp=FrameImpact(),
     x_in = goal.x + 2 * rp + ball.radius
     p, t0, state = replace(params), 0.0, np.concatenate((r0, v0, [0.0]))
     impacts, first = 0, None
+    segments, spins = [], [p.spin.copy()]      # recorded only if record=True (figures)
 
     def ev_contact(t, s):
         return frame_gap(s[:3], ball, goal, rp)[0]
@@ -116,6 +117,8 @@ def resolve(r0, v0, forces, params, ball=Ball(), goal=Goal(), imp=FrameImpact(),
         sol = solve_ivp(make_rhs(forces, p), (t0, t_max), state, method="DOP853", rtol=RTOL, atol=ATOL, max_step=1e-3,
                         events=(ev_contact, ev_over_line, ev_back, ev_ground))
         hit = [len(te) > 0 for te in sol.t_events]
+        if record:
+            segments.append(sol.y[:3].copy())
         if hit[0] and impacts < max_impacts:
             s = sol.y_events[0][0]
             _, n = frame_gap(s[:3], ball, goal, rp)
@@ -124,11 +127,16 @@ def resolve(r0, v0, forces, params, ball=Ball(), goal=Goal(), imp=FrameImpact(),
                 first = {"point": s[:3].tolist(), "vn": float(s[3:6] @ n), "t": float(sol.t_events[0][0])}
             impacts += 1
             p = replace(p, spin=w_new)
+            spins.append(w_new.copy())
             # step slightly off the surface to avoid re-triggering the same contact event
             state = np.concatenate((s[:3] + 1e-6 * n, v_new, [s[6]]))
             t0 = float(sol.t_events[0][0])
             continue
         info = {"impacts": impacts, "first_impact": first}
+        if record:
+            info["path"], info["spins"] = segments, spins
+            if hit[1]:
+                info["final_state"] = sol.y_events[1][0].copy()     # state when the whole ball is over the line
         if hit[1]:
             y, z = sol.y_events[1][0][1:3]
             inside = abs(y) < goal.half_width and z < goal.height
