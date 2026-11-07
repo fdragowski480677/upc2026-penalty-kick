@@ -43,7 +43,7 @@ class Priors:
     rho_bounds: tuple = (1.10, 1.29)
     seam_sd: float = 0.03
     speed_bounds: tuple = (10.0, 45.0)
-    spin_prior: str = "lognormal"          # or "loguniform" (sensitivity): p(|ω|) ∝ 1/|ω| on spin_bounds_rev
+    spin_prior: str = "lognormal"          # or "loguniform" (sensitivity) or "kick" (Stage 5: p(|ω| | |v0|) from kick.py)
     spin_bounds_rev: tuple = (1.0, 10.0)
     rho_prior: str = "wc2026"              # or "uniform" (rho_bounds)
     t_bounds: tuple = (12.0, 35.0)
@@ -53,6 +53,15 @@ class Priors:
 
 
 _DENSITY_PRIOR = None
+_KICK_PRIOR = None
+
+
+def kick_prior():
+    global _KICK_PRIOR
+    if _KICK_PRIOR is None:
+        from .kick import KickSpinPrior
+        _KICK_PRIOR = KickSpinPrior()
+    return _KICK_PRIOR
 
 
 def density_prior():
@@ -107,6 +116,11 @@ def log_prior(theta, pr=Priors()):
         w_rev = W / TWO_PI
         if pr.spin_prior == "lognormal":
             lp_spin = -2 * np.log(W) - np.log(w_rev / pr.spin_median_rev) ** 2 / (2 * pr.spin_sigma_ln**2)
+        elif pr.spin_prior == "kick":
+            # p(a, b) = p_rev(W/2π | |v0|) / (2π)² / W  →  log p = log p_rev − log W + const
+            lp_spin = kick_prior().log_density(speed, w_rev) - np.log(W)
+            ok &= np.isfinite(lp_spin)
+            lp_spin = np.where(np.isfinite(lp_spin), lp_spin, 0.0)
         else:
             lo, hi = pr.spin_bounds_rev
             ok &= (w_rev > lo) & (w_rev < hi)
@@ -145,6 +159,11 @@ def initial_walkers(n, rng, observations=TEST_CASE, priors=Priors(), r0=P0):
     v_fd = (o.position - r0) / o.t
     if priors.spin_prior == "lognormal":
         W = TWO_PI * priors.spin_median_rev * np.exp(priors.spin_sigma_ln * rng.standard_normal(n))
+    elif priors.spin_prior == "kick":
+        kp = kick_prior()
+        i = int(np.argmin(abs(kp.vb - np.linalg.norm(v_fd))))
+        c = np.cumsum(np.exp(kp.logp[i])); c /= c[-1]
+        W = TWO_PI * np.maximum(np.interp(rng.uniform(0, 1, n), c, kp.w), 0.2)
     else:
         W = TWO_PI * np.exp(rng.uniform(*np.log(priors.spin_bounds_rev), n))
     phi = rng.uniform(0, TWO_PI, n)
