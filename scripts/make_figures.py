@@ -233,7 +233,7 @@ def fig_stage_trajectories():
 
 def _posterior_trajectories(noise="rounding", n=150, seed=3):
     """n trajectories drawn from the pooled Stage 4 posterior (reference integrator, full force model), cached in results/raw/."""
-    cache = ROOT / "results" / "raw" / f"fig_traj_{noise}_{n}_{seed}.npz"
+    cache = ROOT / "results" / "raw" / f"fig_traj_{noise}_{CHAINS}{n}_{seed}.npz"
     if cache.exists():
         return list(np.load(cache)["trajs"])
     import sys
@@ -245,7 +245,7 @@ def _posterior_trajectories(noise="rounding", n=150, seed=3):
     trajs = []
     for k in range(n):
         c = CURVES[k % len(CURVES)]
-        th = np.load(ROOT / "results" / "raw" / f"stage4_{noise}_{c}.npz")["samples"]
+        th = np.load(ROOT / "results" / "raw" / f"stage4_{noise}_{CHAINS}{c}.npz")["samples"]
         v0, ball, p = sample_params(th[rng.integers(len(th))], c)
         sol, cr = simulate(P0, v0, FORCES, p, ball=ball)
         if cr is not None:
@@ -257,7 +257,7 @@ def _posterior_trajectories(noise="rounding", n=150, seed=3):
 def _pooled_entries(noise="rounding", max_n=30000, seed=0):
     from penalty.bayes import TWO_PI  # noqa: F401
     curves = ["kray2014_re462", "kray2014_re_interp", "asai2007_re455", "asai2007_re_interp"]
-    e = np.concatenate([np.load(ROOT / "results" / "raw" / f"stage4_{noise}_{c}.npz")["entries"] for c in curves])
+    e = np.concatenate([np.load(ROOT / "results" / "raw" / f"stage4_{noise}_{CHAINS}{c}.npz")["entries"] for c in curves])
     e = e[np.all(np.isfinite(e), axis=1)][:, 1:3]
     rng = np.random.default_rng(seed)
     return e[rng.choice(len(e), min(max_n, len(e)), replace=False)]
@@ -403,10 +403,24 @@ FIGURES = {"setup": fig_setup, "drag_curves": fig_drag_curves, "lift_curves": fi
            "goal_face_rounding": fig_goal_face, "example_in_off_post": fig_example_3d}
 
 
+CHAINS = ""   # chain-file prefix: "" = Stage 4 posterior, "final_<spin prior>_" = final unified model (set in main)
+
+
 def main():
+    global CHAINS
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", nargs="*")
+    ap.add_argument("--chains", default="auto", choices=("auto", "stage4", "final_lognormal", "final_kick"),
+                    help="posterior used for the posterior figures; auto = final model with the headline prior if available")
     a = ap.parse_args()
+    if a.chains == "auto":
+        import sys
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from export_results_tex import HEADLINE
+        have = (ROOT / "results" / "final" / "summary_final_rounding.json").exists()
+        a.chains = f"final_{HEADLINE}" if have else "stage4"
+    CHAINS = "" if a.chains == "stage4" else a.chains + "_"
+    print(f"posterior figures from: {a.chains}")
     for name, f in FIGURES.items():
         if a.only and name not in a.only:
             continue
