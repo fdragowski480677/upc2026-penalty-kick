@@ -21,7 +21,11 @@ This matches Hörzer 2010. The spin axis is fixed in space, since gyroscopic sta
 3. So linear interpolation in Re is an *empirical* choice with no physical justification. A physically defensible statement is weaker:
    **C_L rises with S and saturates at 0.25–0.35** (all sources agree: Kray, Asai 2007, Asai 2020 free flight, Bray & Kerwin).
 
-**Why this matters less than it seems.** The data already fix the lift during the observed window (0–0.1 s). The C_L(S, Re) curve only sets
+> **Correction (after implementation, see `stage3-magnus-effect.md`):** the argument below holds only *at fixed lift magnitude*. At σ = 1 cm the
+> data do **not** fix the lift magnitude (the profile χ² is flat over 0.5–15 rev/s), and the entry y then ranges from 2.45 to 3.08 m. The curve shape
+> matters at the ±2.5 cm level; the spin magnitude dominates.
+
+**Why this matters less than it seems (at fixed lift).** The data already fix the lift during the observed window (0–0.1 s). The C_L(S, Re) curve only sets
 **how the lift evolves** as the ball slows from 32 to 28 m/s. At constant ω, S ∝ 1/v, so locally $F_L \propto v^{\,n}$ with
 $n = 2 - \partial\ln C_L/\partial\ln S + \partial\ln C_L/\partial\ln Re$. The physical limits are clear:
 - saturated C_L (C_L independent of S): $F_L\propto v^2$ (n = 2);
