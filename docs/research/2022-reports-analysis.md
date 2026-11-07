@@ -101,17 +101,23 @@ $\vec F_D = -\tfrac12\rho C_D A\,|\vec v|\,\vec v,\quad A=\pi R^2$ [theory]. All
 - **Reynolds number** for a penalty: $Re=\rho v D/\mu \approx 1.2\cdot 30\cdot0.22/1.8\times10^{-5}\approx 4\text{–}5\times10^5$ [ours].
   That is around or above the **drag crisis**, so $C_D$ really does depend on speed in our range.
 - B-471 is the only team to model the crisis. Its table falls to $C_D=0.06$ at 30 m/s, a **smooth-sphere** value.
-  Wind-tunnel data for real panelled balls [lit: Asai et al. 2007; Goff & Carré 2009] give a much milder crisis
-  at lower Re and a supercritical $C_D\approx0.15$–$0.25$ (to verify). With $C_D=0.06$ the ball keeps almost all its speed. **This is
-  a significant flaw [ours].**
+  Wind-tunnel data for real panelled balls has the crisis at a lower $Re_{crit}\approx1.2$–$3.1\times10^5$ and a
+  supercritical (non-spinning) $C_D\approx0.15$–$0.25$. Measured directly at 30.6–33.3 m/s, the value is 0.22–0.24, against
+  0.073 for a smooth sphere in the same tunnel [lit: Asai et al. 2007; Carré et al. 2005; Alam et al. 2010; Oggiano &
+  Sætran 2010, verified, see `literature/drag.md`]. The smooth-sphere minimum, ≈ 0.07 at $Re\approx3.7\times10^5$
+  [lit: Achenbach 1972], is exactly the origin of B-471's 0.06, and it sits right at our operating point. With $C_D=0.06$ the
+  ball keeps almost all its speed. **This is a significant flaw [ours].**
 - Constant $C_D=0.4$–$0.5$ (B-358, B-480) is subcritical. That overestimates the drag at 25–32 m/s.
 
 ### 3.2 Magnus / lift force [theory] + [ours]
 General form: $\vec F_L = \tfrac12\rho C_L A |\vec v|^2\,\dfrac{\vec\omega\times\vec v}{|\vec\omega\times\vec v|}$, with $C_L = C_L(S, Re)$ and spin parameter $S=R\omega/v$ [theory].
 
 All three reports use the inviscid circulation result $\vec F = \tfrac{8}{3}\pi\rho R^3\,\vec\omega\times\vec v$. Comparing with the general
-form gives **$C_L = \tfrac{16}{3}S \approx 5.3\,S$** [ours]. For a typical $S\approx0.2$ that is $C_L\approx1.1$, while measured footballs
-show $C_L\approx0.2$–$0.3$ at that S [lit, to verify]. **The 2022 models therefore overestimate the curl by about 4–5×.**
+form gives **$C_L = \tfrac{16}{3}S \approx 5.3\,S$** [ours]. At $S=0.2$ that is $C_L\approx1.07$, while a football measured in a wind tunnel at
+$Re=4.6\times10^5$ (our regime) gives $C_L\approx0.27$ [lit: Kray et al. 2014, Fig. 9]. Free-kick trajectory fits give
+0.23–0.29 [lit: Bray & Kerwin 2003] (verified, see `literature/lift-spin.md`). **So the 2022 models overestimate the curl by about
+4× at S = 0.2.** The error grows with S: about 1.3× at S = 0.03 and 2.6× at S = 0.1. The measured $C_L(S)$ saturates; a good
+fit at our Re is $C_L\approx0.29\,(1-e^{-S/0.072})$ [ours, fitted to Kray Fig. 9].
 Each team then compensates by finding a small ω (≈ 15 rad/s) in its search. The trajectories look plausible,
 but the fitted spin is not physical. For us this matters a great deal: we will be **inferring** spin from data, so
 a wrong $C_L$ model would give wrong spin estimates and wrong uncertainty [ours].
@@ -122,7 +128,9 @@ a wrong $C_L$ model would give wrong spin estimates and wrong uncertainty [ours]
   decay time $m/(9\pi\eta a)\approx 7\times10^3$ s means the "correction" changes essentially nothing. Yet they report
   a different optimum, which points to grid or search effects rather than physics [ours].
 - Physically, the aerodynamic torque is $\tau = \tfrac12\rho C_M A R v^2$. Measured spin decay over a ~0.4 s penalty flight is
-  probably a few percent [lit, to verify]. For our 0.4 s flight it is likely a second-order effect, but it should be
+  **still unsourced**. None of the 21 reference papers measures ω(t) or a torque coefficient $C_M$. A bracketing
+  estimate with $C_M\approx0.005$–$0.02$ gives a 2–9 % spin loss over 0.4 s [ours]. For now this is a ±5 % systematic,
+  and it needs a dedicated source (open item). For our 0.4 s flight it is likely a second-order effect, but it should be
   *tested*, not assumed.
 
 ### 3.4 Numerical and implementation issues found in the appendices [ours]
@@ -173,10 +181,19 @@ Data: $P_0=(0,0,0.11)$ at t = 0, $P_1=(1.50,0.45,0.44)$ at 0.05 s, $P_2=(2.96,0.
 - **Mean acceleration:** $\bar a=(-16,-16,-12)$ m/s². With 0.01 m rounding of the given positions,
   $\sigma_a\approx2.6$ m/s² per component (rounding only; real tracking noise would be larger).
 - **Decomposition:** subtract gravity $(0,0,-9.81)$ and project onto $\hat v$ and the perpendicular plane:
-  - Component along $-\hat v$ → drag → $C_D\approx0.35\pm0.05$ (taking m = 0.43 kg, R = 0.11 m, ρ = 1.2 kg/m³).
+  - Component along $-\hat v$ → drag → $C_D\approx0.35$ (taking m = 0.43 kg, R = 0.11 m, ρ = 1.2 kg/m³). The noise is
+    large: the difference between $C_D$ = 0.22 and 0.35 is only ≈ 17 mm in the second difference of position.
+    *Literature check:* this is high for a non-spinning ball (prior ≈ 0.22 ± 0.04) but consistent with **spin-enhanced drag**
+    at our Re ($C_D\approx0.25+0.74S$ ≈ 0.32 at S ≈ 0.1 [lit: Kray 2014]). Asai 2007's weaker spin dependence
+    (0.15 + 0.45 S) disagrees; this contradiction is **unresolved**.
   - Perpendicular component ≈ 11 m/s², mostly toward −y → **a strong sideways Magnus force**, $C_L\approx0.2$.
-    That is consistent with $S\approx0.2$–$0.3$, i.e. ω ≈ 60–75 rad/s (≈ 10–12 rev/s), with the spin axis mostly along −z.
+    *Literature check (corrected):* at our Re the measured $C_L(S)$ curve gives **S ≈ 0.09 (0.06–0.12), i.e. ω ≈ 26–40 rad/s
+    (4–6 rev/s)** [lit: Kray 2014]. My first estimate of S ≈ 0.2–0.3 assumed too low a $C_L$ slope. The spin axis is mostly along −z.
     The ball is heading toward +y and curling back toward the centre.
+  - *Sensitivity check (scratch fit with gravity + drag + a constant-coefficient lift force, $C_D$ held fixed):* for $C_D$ from 0.15 to
+    0.35 the fitted lift stays at $C_L\approx0.21$ and the entry point stays at **y ≈ 2.645 m**. Only z changes, from 2.01 to 1.97 m. The fitted
+    launch velocity absorbs the drag difference, so **the predicted entry point is insensitive to $C_D$**. The spin and lift
+    model dominates the prediction.
 - **Why model choice matters:**
   - Gravity only (v₀ fitted): entry at **y ≈ 3.22 m, z ≈ 1.96 m**, close to the post (the ball edge reaches the post at y = 3.55 m).
   - Constant-acceleration extrapolation: entry at **y ≈ 2.49 m, z ≈ 1.92 m**.
@@ -214,7 +231,9 @@ Ranked by expected value for the 2026 problem. Each still needs a relevance chec
    drag + Magnus → + C_D(Re), C_L(S) → + spin decay). It answers "does complexity help?" quantitatively. This makes the
    staged development part of the science, as CLAUDE.md asks.
 4. **Drag crisis near 30 m/s.** Show how $C_D(Re)$ uncertainty (ball type) feeds into the entry-point error.
-5. **The meaning of t = 0.** Foot contact lasts ≈ 8–12 ms [lit, to verify]. If the ball is still accelerating
+5. **The meaning of t = 0.** Foot contact lasts 8.8–12.0 ms (means 9.6–10.7 ms) and the ball deforms by 29–65 mm
+   [lit: Ishii et al. 2012, verified]. *Note:* the test-case interval lengths (1.600 m, then 1.546 m) match drag alone, which rules out
+   a ≈ 5 ms contact lag [ours, see `literature/kick-keeper.md`]. So t = 0 behaves as an effective free-flight origin. If the ball is still accelerating
    at t ≈ 0, treating $P_0$ as a free-flight point biases the fit. Test this by fitting only $P_1$ and $P_2$ with free
    $\vec r_0$ against fitting with $P_0$ fixed.
 6. **Goalkeeper information budget.** At t = 0.10 s about 0.27–0.30 s of flight remain, comparable to a keeper's
