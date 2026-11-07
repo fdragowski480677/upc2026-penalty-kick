@@ -4,8 +4,9 @@ It implements exactly the same physics as ``forces.py`` (gravity, drag with spin
 spin decay, seam side force), but with every walker or sample as a row of a NumPy array. Equivalence with the reference
 DOP853 integrator is enforced by tests (< 1e-6 m in position at 0.05/0.10 s and at the goal-plane crossing).
 
-Per-trajectory parameters (arrays of length N): v0 (N,3), spin (N,3), cd0 (N), rho (N), seam (N,2).
-Shared settings: lift model, spin-drag slope, spin-decay k, ball, kinematic viscosity.
+Per-trajectory parameters (arrays of length N): v0 (N,3), spin (N,3), cd0 (N), rho (N), seam (N,2), and optionally
+mass (N), radius (N), nu (N) (Stage 4 Monte Carlo over the ball and the climate; defaults come from Settings).
+Shared settings: lift model, spin-drag slope, spin-decay k, default ball, default kinematic viscosity.
 """
 from dataclasses import dataclass
 
@@ -45,15 +46,14 @@ def _unit(x):
     return x / np.linalg.norm(x, axis=1, keepdims=True)
 
 
-def accel(V, path, spin0, cd0, rho, seam, st):
-    b = st.ball
+def accel(V, path, spin0, cd0, rho, seam, mass, radius, nu, st):
     speed = np.linalg.norm(V, axis=1)
-    Re = speed * 2 * b.radius / st.air.kinematic_viscosity
-    K = 0.5 * rho * np.pi * b.radius**2 / b.mass
-    w = spin0 if st.spin_decay_k == 0.0 else spin0 * np.exp(-st.spin_decay_k * path / b.radius)[:, None]
+    Re = speed * 2 * radius / nu
+    K = 0.5 * rho * np.pi * radius**2 / mass
+    w = spin0 if st.spin_decay_k == 0.0 else spin0 * np.exp(-st.spin_decay_k * path / radius)[:, None]
     w_perp = w - (np.sum(w * V, axis=1) / speed**2)[:, None] * V
     wn = np.linalg.norm(w_perp, axis=1)
-    S = b.radius * wn / speed
+    S = radius * wn / speed
     cd = cd0 + st.spin_drag_slope * S
     a = -(K * cd * speed)[:, None] * V
     cl = cl_vectorised(st.lift_model, S, Re, speed)
@@ -82,15 +82,21 @@ def _rk4(Y, h, p, st):
     return Y + h / 6.0 * (k1 + 2 * k2 + 2 * k3 + k4)
 
 
+def _params(v0, spin, cd0, rho, seam, mass, radius, nu, st):
+    n = v0.shape[0]
+    full = lambda x, d: np.full(n, d) if x is None else np.asarray(x, dtype=float)
+    return (spin, cd0, rho, seam, full(mass, st.ball.mass), full(radius, st.ball.radius), full(nu, st.air.kinematic_viscosity))
+
+
 def _initial(r0, v0):
     n = v0.shape[0]
     return np.concatenate((np.broadcast_to(r0, (n, 3)), v0, np.zeros((n, 1))), axis=1)
 
 
-def positions(r0, v0, spin, cd0, rho, seam, st, times=(0.05, 0.10), dt=1e-3):
+def positions(r0, v0, spin, cd0, rho, seam, st, times=(0.05, 0.10), dt=1e-3, mass=None, radius=None, nu=None):
     """Positions at the given times (which must be multiples of dt), shape (N, len(times), 3)."""
     Y = _initial(r0, v0)
-    p = (spin, cd0, rho, seam)
+    p = _params(v0, spin, cd0, rho, seam, mass, radius, nu, st)
     out, t, k = [], 0.0, 0
     for target in times:
         nsteps = int(round((target - t) / dt))
@@ -101,11 +107,11 @@ def positions(r0, v0, spin, cd0, rho, seam, st, times=(0.05, 0.10), dt=1e-3):
     return np.stack(out, axis=1)
 
 
-def crossings(r0, v0, spin, cd0, rho, seam, st, goal=Goal(), dt=5e-4, t_max=1.5):
+def crossings(r0, v0, spin, cd0, rho, seam, st, goal=Goal(), dt=5e-4, t_max=1.5, mass=None, radius=None, nu=None):
     """Goal-plane crossing (t, y, z) for every trajectory; NaN if the ball lands (centre at z = R) or never arrives."""
     n = v0.shape[0]
     Y = _initial(r0, v0)
-    p = (spin, cd0, rho, seam)
+    p = _params(v0, spin, cd0, rho, seam, mass, radius, nu, st)
     res = np.full((n, 3), np.nan)
     active = np.ones(n, dtype=bool)
     t = 0.0
@@ -122,7 +128,7 @@ def crossings(r0, v0, spin, cd0, rho, seam, st, goal=Goal(), dt=5e-4, t_max=1.5)
             yz = (h00[:, None] * Y[hit, 1:3] + h10[:, None] * d0 + h01[:, None] * Yn[hit, 1:3] + h11[:, None] * d1)
             res[hit] = np.column_stack((t + s * dt, yz))
             active &= ~hit
-        landed = active & (Yn[:, 2] < st.ball.radius)
+        landed = active & (Yn[:, 2] < p[5])
         active &= ~landed
         Y, t = Yn, t + dt
     return res

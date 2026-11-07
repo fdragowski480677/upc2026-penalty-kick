@@ -1,6 +1,6 @@
 """Stage 4 validation: are the stated credible regions calibrated? (simulation-based coverage test)
 
-For each trial: draw a 'true' penalty (v0 near the test case; spin, C_D0, ρ, seam from the priors), simulate the positions at
+For each trial: draw a 'true' penalty (v0 near the test case; spin, C_D0, ρ, T, ball mass/size, seam from the priors), simulate the positions at
 0.05 and 0.10 s, add noise, run the Bayesian pipeline, and record whether the true entry point lies inside the 68 % / 95 %
 highest-density regions. With a correct and well-sampled model, the coverage fractions should be ≈ 0.68 and ≈ 0.95,
 within binomial scatter.
@@ -19,7 +19,7 @@ from pathlib import Path
 
 import numpy as np
 
-from penalty.bayes import Priors, sample, summarise, unpack
+from penalty.bayes import Priors, density_prior, physics, sample, summarise, unpack
 from penalty.coefficients import LIFT_MODELS
 from penalty.constants import P0, Observation
 from penalty.fastsim import Settings, crossings, positions
@@ -37,7 +37,9 @@ def draw_truth(rng, pr=Priors()):
         cd0 = rng.normal(pr.cd0_mean, pr.cd0_sd)
         if pr.cd0_bounds[0] < cd0 < pr.cd0_bounds[1]:
             break
-    return np.array([*v0, W * np.cos(phi), W * np.sin(phi), cd0, rng.uniform(*pr.rho_bounds), *rng.normal(0, pr.seam_sd, 2)])
+    rho = rng.choice(density_prior().samples)
+    return np.array([*v0, W * np.cos(phi), W * np.sin(phi), cd0, rho, rng.uniform(*pr.t_bounds), rng.uniform(*pr.mass_bounds),
+                     rng.uniform(*pr.circ_bounds), *rng.normal(0, pr.seam_sd, 2)])
 
 
 def trial(args):
@@ -45,10 +47,10 @@ def trial(args):
     rng = np.random.default_rng(1000 + i)
     st = Settings(LIFT_MODELS[lift])
     th = draw_truth(rng)[None, :]
-    true_entry = crossings(P0, *unpack(th), st)[0]
+    true_entry = crossings(P0, *unpack(th), st, **physics(th))[0]
     if not np.all(np.isfinite(true_entry)):
         return None
-    pos = positions(P0, *unpack(th), st)[0]
+    pos = positions(P0, *unpack(th), st, **physics(th))[0]
     sig = NOISE[noise]
     obs = tuple(Observation(t, p + rng.normal(0, sig, 3), sig) for t, p in zip((0.05, 0.10), pos))
     post = sample(st, f"cov{i}", observations=obs, seed=i, **kw)
@@ -63,8 +65,10 @@ def main():
     ap.add_argument("--noise", choices=sorted(NOISE), default="tracking")
     ap.add_argument("--trials", type=int, default=24)
     ap.add_argument("--procs", type=int, default=11)
+    ap.add_argument("--nsteps", type=int, default=5000)
+    ap.add_argument("--burn", type=int, default=1500)
     a = ap.parse_args()
-    kw = dict(nwalkers=64, nsteps=3000, burn=1000, thin=10)
+    kw = dict(nwalkers=64, nsteps=a.nsteps, burn=a.burn, thin=10)
     jobs = [(i, a.noise, "kray2014_re462", kw) for i in range(a.trials)]
     with Pool(a.procs) as pool:
         rows = [r for r in pool.imap_unordered(trial, jobs) if r is not None]

@@ -1,13 +1,19 @@
 """Stage 4: Bayesian inference of the goal-entry point.
 
-Parameters θ (9): v0 (3), spin components (a, b) ⊥ v0 [rad/s], C_D0, ρ, seam coefficients (c1, c2).
+Parameters θ (12): v0 (3), spin components (a, b) ⊥ v0 [rad/s], C_D0, ρ [kg/m³], air temperature T [°C],
+ball mass m [kg], ball circumference C [m], seam coefficients (c1, c2).
 Likelihood: independent Gaussian position errors, σ = 1 cm, at 0.05 s and 0.10 s (P0 exact).
 Priors (team decisions; sources in docs/stages/stage4-uncertainty.md):
 
 * |ω|: log-normal, median 5 rev/s, σ_ln = 0.41 (95 % ≈ 2.2–11 rev/s). The axis angle in the plane ⊥ v0 is uniform.
   In (a, b) coordinates the density is p(a, b) = LN(|ω|) / (2π|ω|) (polar Jacobian).
 * C_D0 ~ N(0.22, 0.04²), truncated to [0.12, 0.35].
-* ρ ~ U(1.10, 1.29) kg/m³.
+* ρ: the Monte Carlo marginal of moist-air density over the FIFA World Cup 2026 venue/climate envelope (environment.py):
+  altitude 3–2240 m, T 12–35 °C, RH 20–90 %, weather ±1 % → ρ ≈ 0.83–1.28 kg/m³ (team decision). The sensitivity option
+  ``rho_prior="uniform"`` restores U(1.10, 1.29).
+* T ~ U(12, 35) °C, entering through ν = μ_Sutherland(T)/ρ (Re only). The T–ρ correlation is neglected in ν, which affects only the
+  weak Re dependence of C_L.
+* m ~ U(0.410, 0.450) kg and C ~ U(0.68, 0.70) m (IFAB Law 2), R = C/2π (team decision). ``ball_prior="fixed"`` pins m = 0.43, R = 0.11.
 * c1, c2 ~ N(0, 0.03²).
 * v0: flat for 10 < |v0| < 45 m/s.
 
@@ -20,6 +26,7 @@ import numpy as np
 from scipy.stats import gaussian_kde
 
 from .constants import P0, TEST_CASE
+from .environment import DensityPrior, dynamic_viscosity
 from .fastsim import Settings, crossings, positions
 from .outcome import classify
 
@@ -38,6 +45,27 @@ class Priors:
     speed_bounds: tuple = (10.0, 45.0)
     spin_prior: str = "lognormal"          # or "loguniform" (sensitivity): p(|ω|) ∝ 1/|ω| on spin_bounds_rev
     spin_bounds_rev: tuple = (1.0, 10.0)
+    rho_prior: str = "wc2026"              # or "uniform" (rho_bounds)
+    t_bounds: tuple = (12.0, 35.0)
+    ball_prior: str = "law2"               # or "fixed"
+    mass_bounds: tuple = (0.410, 0.450)
+    circ_bounds: tuple = (0.68, 0.70)
+
+
+_DENSITY_PRIOR = None
+
+
+def density_prior():
+    global _DENSITY_PRIOR
+    if _DENSITY_PRIOR is None:
+        _DENSITY_PRIOR = DensityPrior()
+    return _DENSITY_PRIOR
+
+
+def _ball_bounds(pr):
+    if pr.ball_prior == "fixed":
+        return (0.4299, 0.4301), (0.1100 * TWO_PI - 1e-5, 0.1100 * TWO_PI + 1e-5)
+    return pr.mass_bounds, pr.circ_bounds
 
 
 def spin_basis_vec(v0):
@@ -48,18 +76,33 @@ def spin_basis_vec(v0):
 
 
 def unpack(theta):
+    """θ → (v0, spin, cd0, rho, seam) positional arguments for fastsim."""
     v0 = theta[:, :3]
     e1, e2 = spin_basis_vec(v0)
     spin = theta[:, 3:4] * e1 + theta[:, 4:5] * e2
-    return v0, spin, theta[:, 5], theta[:, 6], theta[:, 7:9]
+    return v0, spin, theta[:, 5], theta[:, 6], theta[:, 10:12]
+
+
+def physics(theta):
+    """θ → per-sample mass, radius and kinematic viscosity (keyword arguments for fastsim)."""
+    return {"mass": theta[:, 8], "radius": theta[:, 9] / TWO_PI, "nu": dynamic_viscosity(theta[:, 7]) / theta[:, 6]}
 
 
 def log_prior(theta, pr=Priors()):
     speed = np.linalg.norm(theta[:, :3], axis=1)
     W = np.hypot(theta[:, 3], theta[:, 4])
-    cd0, rho, seam = theta[:, 5], theta[:, 6], theta[:, 7:9]
+    cd0, rho, t, m, c, seam = theta[:, 5], theta[:, 6], theta[:, 7], theta[:, 8], theta[:, 9], theta[:, 10:12]
+    mb, cb = _ball_bounds(pr)
     ok = ((speed > pr.speed_bounds[0]) & (speed < pr.speed_bounds[1]) & (W > 0)
-          & (cd0 > pr.cd0_bounds[0]) & (cd0 < pr.cd0_bounds[1]) & (rho > pr.rho_bounds[0]) & (rho < pr.rho_bounds[1]))
+          & (cd0 > pr.cd0_bounds[0]) & (cd0 < pr.cd0_bounds[1]) & (t > pr.t_bounds[0]) & (t < pr.t_bounds[1])
+          & (m > mb[0]) & (m < mb[1]) & (c > cb[0]) & (c < cb[1]))
+    if pr.rho_prior == "uniform":
+        ok &= (rho > pr.rho_bounds[0]) & (rho < pr.rho_bounds[1])
+        lp_rho = np.zeros_like(rho)
+    else:
+        lp_rho = density_prior()(rho)
+        ok &= np.isfinite(lp_rho)
+        lp_rho = np.where(ok, lp_rho, 0.0)
     with np.errstate(divide="ignore"):
         w_rev = W / TWO_PI
         if pr.spin_prior == "lognormal":
@@ -68,7 +111,7 @@ def log_prior(theta, pr=Priors()):
             lo, hi = pr.spin_bounds_rev
             ok &= (w_rev > lo) & (w_rev < hi)
             lp_spin = -2 * np.log(W)
-        lp = (lp_spin - (cd0 - pr.cd0_mean) ** 2 / (2 * pr.cd0_sd**2) - np.sum(seam**2, axis=1) / (2 * pr.seam_sd**2))
+        lp = (lp_spin + lp_rho - (cd0 - pr.cd0_mean) ** 2 / (2 * pr.cd0_sd**2) - np.sum(seam**2, axis=1) / (2 * pr.seam_sd**2))
     return np.where(ok, lp, -np.inf)
 
 
@@ -87,7 +130,8 @@ def make_log_posterior(settings, observations=TEST_CASE, priors=Priors(), r0=P0)
         good = np.isfinite(lp)
         out = np.full(theta.shape[0], -np.inf)
         if good.any():
-            pos = positions(r0, *unpack(theta[good]), settings, times=times, dt=LIKELIHOOD_DT)
+            th = theta[good]
+            pos = positions(r0, *unpack(th), settings, times=times, dt=LIKELIHOOD_DT, **physics(th))
             chi2 = np.sum(((pos - data) / sig) ** 2, axis=(1, 2))
             out[good] = lp[good] - 0.5 * chi2
         return out
@@ -105,16 +149,23 @@ def initial_walkers(n, rng, observations=TEST_CASE, priors=Priors(), r0=P0):
         W = TWO_PI * np.exp(rng.uniform(*np.log(priors.spin_bounds_rev), n))
     phi = rng.uniform(0, TWO_PI, n)
     cd0 = np.clip(rng.normal(priors.cd0_mean, priors.cd0_sd, n), 0.13, 0.34)
-    rho = rng.uniform(*priors.rho_bounds, n)
+    if priors.rho_prior == "uniform":
+        rho = rng.uniform(*priors.rho_bounds, n)
+    else:
+        rho = rng.choice(density_prior().samples, n)
+    t = rng.uniform(*priors.t_bounds, n)
+    mb, cb = _ball_bounds(priors)
+    m = rng.uniform(*mb, n)
+    c = rng.uniform(*cb, n)
     seam = rng.normal(0, priors.seam_sd, (n, 2))
     v0 = v_fd + rng.normal(0, 0.3, (n, 3))
-    return np.column_stack((v0, W * np.cos(phi), W * np.sin(phi), cd0, rho, seam))
+    return np.column_stack((v0, W * np.cos(phi), W * np.sin(phi), cd0, rho, t, m, c, seam))
 
 
 @dataclass
 class Posterior:
     label: str
-    samples: np.ndarray     # (M, 9) θ samples
+    samples: np.ndarray     # (M, 12) θ samples
     entries: np.ndarray     # (M, 3) goal crossing (t, y, z); NaN if the ball never reaches the goal
     acceptance: float
     tau: np.ndarray         # integrated autocorrelation times per parameter
@@ -130,7 +181,7 @@ def sample(settings, label, nwalkers=48, nsteps=4000, burn=1500, thin=10, seed=0
     sampler.run_mcmc(p0, nsteps, progress=False)
     chain = sampler.get_chain(discard=burn, thin=thin, flat=True)
     tau = sampler.get_autocorr_time(discard=burn, quiet=True)
-    entries = crossings(P0, *unpack(chain), settings)
+    entries = crossings(P0, *unpack(chain), settings, **physics(chain))
     return Posterior(label, chain, entries, float(np.mean(sampler.acceptance_fraction)), tau)
 
 

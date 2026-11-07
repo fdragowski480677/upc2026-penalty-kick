@@ -78,10 +78,29 @@ def test_spin_prior_is_normalised_lognormal():
     from penalty.bayes import Priors, initial_walkers, log_prior
     rng = np.random.default_rng(3)
     p0 = initial_walkers(32, rng)
-    sampler = emcee.EnsembleSampler(32, 9, lambda th: log_prior(th), vectorize=True)
+    sampler = emcee.EnsembleSampler(32, 12, lambda th: log_prior(th), vectorize=True)
     sampler.run_mcmc(p0, 3000, progress=False)
     ch = sampler.get_chain(discard=1000, flat=True)
     w = np.hypot(ch[:, 3], ch[:, 4]) / (2 * np.pi)
     assert np.median(w) == pytest.approx(5.0, rel=0.08)
     assert np.percentile(w, 2.5) == pytest.approx(5 * np.exp(-1.96 * 0.41), rel=0.15)
     assert np.percentile(w, 97.5) == pytest.approx(5 * np.exp(1.96 * 0.41), rel=0.15)
+
+
+def test_per_sample_ball_and_viscosity_match_reference():
+    from penalty.constants import Ball
+    v0, spin, cd0, rho, seam = cases()
+    n = len(cd0)
+    mass = RNG.uniform(0.41, 0.45, n)
+    radius = RNG.uniform(0.68, 0.70, n) / (2 * np.pi)
+    nu = RNG.uniform(1.4e-5, 2.0e-5, n)
+    st = Settings(LIFT_MODELS["kray2014_re_interp"], 0.47, 1.4e-4)
+    fast = positions(P0, v0, spin, cd0, rho, seam, st, mass=mass, radius=radius, nu=nu)
+    cr = crossings(P0, v0, spin, cd0, rho, seam, st, mass=mass, radius=radius, nu=nu)
+    for i in range(n):
+        p = replace(reference_params(i, v0, spin, cd0, rho, seam, LIFT_MODELS["kray2014_re_interp"], 0.47, 1.4e-4),
+                    ball=Ball(mass=mass[i], radius=radius[i]), air=Air(density=rho[i], kinematic_viscosity=nu[i]))
+        ref = positions_at(P0, v0[i], (0.05, 0.10), FORCES, p)
+        _, c = simulate(P0, v0[i], FORCES, p, ball=p.ball)
+        assert np.max(np.abs(fast[i] - ref)) < 1e-6
+        assert np.max(np.abs(cr[i, 1:] - c.position[1:])) < 1e-6

@@ -35,9 +35,10 @@ def derived(post, settings):
     th = post.samples
     v0 = np.linalg.norm(th[:, :3], axis=1)
     w = np.hypot(th[:, 3], th[:, 4])
-    S = settings.ball.radius * w / v0
+    S = th[:, 9] / (2 * np.pi) * w / v0
     return {"spin_rev_s": w / (2 * np.pi), "S0": S, "CD_launch": th[:, 5] + settings.spin_drag_slope * S,
-            "speed": v0, "rho": th[:, 6], "flight_time": post.entries[:, 0]}
+            "speed": v0, "rho": th[:, 6], "air_T_C": th[:, 7], "mass_kg": th[:, 8], "circumference_m": th[:, 9],
+            "flight_time": post.entries[:, 0]}
 
 
 def q(x):
@@ -85,35 +86,38 @@ def figure(entries, summary, path, noise):
     from matplotlib.patches import Rectangle
 
     surface, ink, ink2, muted = "#fcfcfb", "#0b0b0b", "#52514e", "#8a8984"
-    blues = ["#fcfcfb", "#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95"]
+    blues = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95"]
     cmap = LinearSegmentedColormap.from_list("seq_blue", blues)
     series = {"Stage 1 (gravity)": "#eb6834", "Stage 2 (+ drag)": "#1baf7a"}
 
     fig, ax = plt.subplots(figsize=(9.5, 4.6), dpi=200, facecolor=surface)
     ax.set_facecolor(surface)
-    yy, zz = np.meshgrid(np.linspace(-0.5, 4.5, 300), np.linspace(0.0, 3.4, 220))
+    yy, zz = np.meshgrid(np.linspace(-0.5, 4.5, 400), np.linspace(0.0, 3.2, 260))
     dens = summary.kde(np.vstack((yy.ravel(), zz.ravel()))).reshape(yy.shape)
-    ax.contourf(yy, zz, dens, levels=12, cmap=cmap, zorder=1)
-    cs = ax.contour(yy, zz, dens, levels=sorted(summary.levels.values()), colors=[blues[5], blues[6]],
-                    linewidths=2.0, linestyles=["--", "-"], zorder=3)
-    # goal frame (inner edges at y = ±3.66, z = 2.44; posts/bar 0.12 m)
-    for x0, w in ((3.66, 0.12), (-3.78, 0.12)):
-        ax.add_patch(Rectangle((x0, 0), w, 2.56, color=ink2, zorder=4))
+    lo95, lo68 = summary.levels[0.95], summary.levels[0.68]
+    # fill only inside the 95 % region, so the surface stays neutral elsewhere
+    ax.contourf(yy, zz, dens, levels=np.linspace(lo95, dens.max(), 9), cmap=cmap, zorder=1)
+    ax.contour(yy, zz, dens, levels=[lo95], colors=[blues[5]], linewidths=2.0, linestyles="-", zorder=3)
+    ax.contour(yy, zz, dens, levels=[lo68], colors=[ink], linewidths=2.0, linestyles="--", zorder=3)
+    for x0 in (3.66, -3.78):
+        ax.add_patch(Rectangle((x0, 0), 0.12, 2.56, color=ink2, zorder=4))
     ax.add_patch(Rectangle((-3.78, 2.44), 7.56, 0.12, color=ink2, zorder=4))
-    ax.axhline(0, color=muted, lw=1, zorder=2)
     m = summary.mode
     ax.plot(*m, marker="o", ms=9, color=ink, mec=surface, mew=2, zorder=6)
-    ax.annotate(f"most probable entry\n(y, z) = ({m[0]:.2f}, {m[1]:.2f}) m", m, xytext=(m[0] - 2.3, m[1] + 0.55),
-                color=ink, fontsize=9, arrowprops=dict(arrowstyle="-", color=ink2, lw=1), zorder=7)
+    ax.annotate(f"most probable entry\n(y, z) = ({m[0]:.2f}, {m[1]:.2f}) m", m, xytext=(0.0, 1.0), color=ink, fontsize=9,
+                arrowprops=dict(arrowstyle="-", color=ink2, lw=1), zorder=7)
+    offsets = {"Stage 1 (gravity)": (3.95, 2.05), "Stage 2 (+ drag)": (3.95, 1.70)}
     for name, (y, z) in STAGE_POINTS.items():
         ax.plot(y, z, marker="D", ms=8, color=series[name], mec=surface, mew=2, zorder=5)
-    ax.set_xlim(-0.5, 4.5); ax.set_ylim(0, 3.2); ax.set_aspect("equal")
+        ax.annotate(name, (y, z), xytext=offsets[name], color=ink, fontsize=8,
+                    arrowprops=dict(arrowstyle="-", color=muted, lw=0.8), zorder=7)
+    ax.set_xlim(-0.5, 4.9); ax.set_ylim(0, 3.2); ax.set_aspect("equal")
     ax.set_xlabel("y (m), lateral", color=ink2); ax.set_ylabel("z (m), height", color=ink2)
     for sp in ax.spines.values():
         sp.set_color(muted)
     ax.tick_params(colors=ink2)
-    handles = [Line2D([], [], color=blues[6], lw=2, label="95 % credible region"),
-               Line2D([], [], color=blues[5], lw=2, ls="--", label="68 % credible region"),
+    handles = [Line2D([], [], color=ink, lw=2, ls="--", label="68 % credible region"),
+               Line2D([], [], color=blues[5], lw=2, label="95 % credible region"),
                Line2D([], [], marker="o", ls="", color=ink, ms=8, label="most probable (posterior mode)")]
     handles += [Line2D([], [], marker="D", ls="", color=c, ms=7, label=f"{k} point estimate") for k, c in series.items()]
     ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(1.01, 1.0), frameon=False, fontsize=8, labelcolor=ink)
@@ -124,13 +128,26 @@ def figure(entries, summary, path, noise):
     plt.close(fig)
 
 
+def replot(noise):
+    raw = ROOT / "results" / "raw"
+    pooled = np.concatenate([np.load(raw / f"stage4_{noise}_{c}.npz")["entries"] for c in NOMINAL_CURVES])
+    figure(pooled, summarise(pooled), ROOT / "results" / "figures" / f"stage4_entry_posterior_{noise}.png", noise)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--quick", action="store_true", help="short chains for a smoke test")
     ap.add_argument("--noise", choices=sorted(NOISE), default="tracking")
     ap.add_argument("--procs", type=int, default=11)
+    ap.add_argument("--nsteps", type=int, default=6000)
+    ap.add_argument("--burn", type=int, default=2000)
+    ap.add_argument("--replot", action="store_true", help="redraw the figure from saved chains only")
     a = ap.parse_args()
-    kw = dict(nwalkers=64, nsteps=1200, burn=400, thin=10) if a.quick else dict(nwalkers=128, nsteps=6000, burn=2000, thin=20)
+    if a.replot:
+        replot(a.noise)
+        return
+    kw = (dict(nwalkers=64, nsteps=1200, burn=400, thin=10) if a.quick
+          else dict(nwalkers=128, nsteps=a.nsteps, burn=a.burn, thin=max(10, a.nsteps // 300)))
     raw = ROOT / "results" / "raw"; raw.mkdir(parents=True, exist_ok=True)
     out = ROOT / "results" / "stage4"; out.mkdir(parents=True, exist_ok=True)
     figs = ROOT / "results" / "figures"; figs.mkdir(parents=True, exist_ok=True)
@@ -144,6 +161,8 @@ def main():
             "spin_drag_kray_0.74": (replace(base, spin_drag_slope=0.74), pr),
             "spin_decay_asai2020": (replace(base, spin_decay_k=SPIN_DECAY_K["asai2020"]), pr),
             "no_seam_force": (base, replace(pr, seam_sd=1e-6)),
+            "rho_uniform_1.10_1.29": (base, replace(pr, rho_prior="uniform")),
+            "ball_fixed_0.43kg_0.11m": (base, replace(pr, ball_prior="fixed")),
             "lift_limit_linear": (Settings(LIFT_MODELS["limit_linear"]), pr),
             "lift_limit_saturated": (Settings(LIFT_MODELS["limit_saturated"]), pr)}
     jobs = [(c, Settings(LIFT_MODELS[c]), pr, kw, raw, a.noise) for c in NOMINAL_CURVES]
