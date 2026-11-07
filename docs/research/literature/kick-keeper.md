@@ -9,7 +9,7 @@ Figures were read from the embedded images: Ishii Fig. 5 and Fig. 7, Hunter Fig.
 ## Cluster summary
 
 - **Contact time is confirmed at about 10 ms.** Ishii et al. measured it at 2,500 fps: subject means were 9.6–10.7 ms and single trials ranged from 8.8 to 12.0 ms [Ishii 2012, p. 262 and Table 1]. The ball deforms by 29–65 mm at peak, and the peak force is 1.1–2.2 kN, reached at about 4 ms [Ishii 2012, p. 262 and Fig. 5].
-- **Measured launch speeds in this cluster are 17–26 m/s.** All the kickers are university or intercollegiate players. A 3-step penalty gave 23.9 ± 1.2 m/s [Ravenscroft & Linthorne 2015, p. 3]. One-step lab kicks gave 17.1–24.7 m/s [Ishii 2012, Table 1]. The example trial in Naito et al. was 26.3 m/s [Naito 2010, p. 267–268]. **32.5 m/s is well above every value in this cluster.** It is plausible only for a powerful, near-maximal kick by a strong or elite player.
+- **Measured launch speeds in this cluster are 17–26 m/s.** All the kickers are university or intercollegiate players. A 3-step penalty gave 23.9 ± 1.2 m/s [Ravenscroft & Linthorne 2015, p. 3]. One-step lab kicks gave 17.1–24.7 m/s (normalised values, see the note in the table) [Ishii 2012, Table 1]. The example trial in Naito et al. was 26.3 m/s [Naito 2010, p. 267–268]. **32.5 m/s is well above every value in this cluster.** It is plausible only for a powerful, near-maximal kick by a strong or elite player.
 - **The ball/foot speed ratio is about 1.3–1.45.** For our 32.5 m/s this implies a foot speed of about 23–25 m/s *(our calc)*.
 - **Launch angle in a penalty is 8 ± 5°** [Ravenscroft & Linthorne 2015, p. 3], so our 12° is typical.
 - **Impact point along the foot changes speed by up to about 15%.** The relationship is an inverted U with its peak near the foot's centre of mass [Ishii 2012, Fig. 7]. For a realistic penalty from the ground, the effect was not detectable: the slope was 0 ± 0.12 m/s per cm [Ravenscroft & Linthorne 2015, Fig. 1]. **No paper in this cluster measures spin.** Every analysis is 2-D in the sagittal plane.
@@ -169,7 +169,7 @@ It gives no absolute ball speeds, no ball flight times, no save rates and no kee
 | Peak impact force | 1.06–2.23 kN, peak at about 4 ms | as above | [Ishii 2012, p. 262, Fig. 5] |
 | Ball-centre displacement during contact | ≈ V·τ/2 ≈ 0.10 m at 20 m/s and **≈ 0.15 m at 32.5 m/s** *(our calc, half-sine force)* | — | derived from [Ishii 2012, Fig. 5] |
 | Ball launch speed, penalty | 23.9 ± 1.2 m/s | one intercollegiate player, 3-step | [Ravenscroft & Linthorne 2015, p. 3] |
-| Ball launch speed, lab maximal | 17.1–24.7 m/s (subject means 19.4–22.6) | 5 university players, one step | [Ishii 2012, Table 1] |
+| Ball launch speed, lab maximal | 17.1–24.7 m/s (subject means 19.4–22.6), **normalised to foot speed** | 5 university players, one step, ball on a 0–12 cm stand | [Ishii 2012, Table 1] |
 | Ball launch speed, lab | 26.3 m/s (example trial) | collegiate, 2-step | [Naito 2010, p. 267–268] |
 | Foot speed at impact | 17.3 ± 0.7 m/s; 13.1–17.9 m/s | as above | [R&L 2015]; [Ishii 2012, Table 1] |
 | Ball/foot speed ratio | 1.32–1.45 | — | *(our calc from both papers)* |

@@ -185,7 +185,7 @@ Data: $P_0=(0,0,0.11)$ at t = 0, $P_1=(1.50,0.45,0.44)$ at 0.05 s, $P_2=(2.96,0.
     large: the difference between $C_D$ = 0.22 and 0.35 is only ≈ 17 mm in the second difference of position.
     *Literature check:* this is high for a non-spinning ball (prior ≈ 0.22 ± 0.04) but consistent with **spin-enhanced drag**
     at our Re ($C_D\approx0.25+0.74S$ ≈ 0.32 at S ≈ 0.1 [lit: Kray 2014]). Asai 2007's weaker spin dependence
-    (0.15 + 0.45 S) disagrees; this contradiction is **unresolved**.
+    (0.15 + 0.45 S) differs; Kray attributes such differences to ball design and support interference, so we treat it as model uncertainty, not a contradiction to resolve.
   - Perpendicular component ≈ 11 m/s², mostly toward −y → **a strong sideways Magnus force**, $C_L\approx0.2$.
     *Literature check (corrected):* at our Re the measured $C_L(S)$ curve gives **S ≈ 0.09 (0.06–0.12), i.e. ω ≈ 26–40 rad/s
     (4–6 rev/s)** [lit: Kray 2014]. My first estimate of S ≈ 0.2–0.3 assumed too low a $C_L$ slope. The spin axis is mostly along −z.
