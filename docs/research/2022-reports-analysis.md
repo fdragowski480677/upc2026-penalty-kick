@@ -128,7 +128,7 @@ a wrong $C_L$ model would give wrong spin estimates and wrong uncertainty [ours]
   decay time $m/(9\pi\eta a)\approx 7\times10^3$ s means the "correction" changes essentially nothing. Yet they report
   a different optimum, which points to grid or search effects rather than physics [ours].
 - Physically, the aerodynamic torque is $\tau = \tfrac12\rho C_M A R v^2$. Measured spin decay over a ~0.4 s penalty flight is
-  **still unsourced**. None of the 21 reference papers measures ω(t) or a torque coefficient $C_M$. A bracketing
+  **still unsourced**. None of the 20 reference papers measures ω(t) or a torque coefficient $C_M$. A bracketing
   estimate with $C_M\approx0.005$–$0.02$ gives a 2–9 % spin loss over 0.4 s [ours]. For now this is a ±5 % systematic,
   and it needs a dedicated source (open item). For our 0.4 s flight it is likely a second-order effect, but it should be
   *tested*, not assumed.

@@ -1,6 +1,6 @@
 # Literature notes: index and consolidated parameters
 
-The sources are the 21 papers cited by the 2022 reports (PDFs kept locally in `references/2022/`, not committed).
+The sources are the 20 papers cited by the 2022 reports (PDFs kept locally in `references/2022/`, not committed).
 Detailed notes per cluster:
 
 | File | Cluster | Sources |
