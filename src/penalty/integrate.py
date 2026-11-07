@@ -22,6 +22,7 @@ class Crossing:
     t: float               # time of crossing [s]
     position: np.ndarray   # ball-centre position at the crossing [m]
     velocity: np.ndarray   # ball velocity at the crossing [m/s]
+    path: float = 0.0      # arc length flown [m]
 
 
 def simulate(r0, v0, forces, params=None, t_max=2.0, goal=Goal(), ball=Ball(), dense=True):
@@ -37,18 +38,18 @@ def simulate(r0, v0, forces, params=None, t_max=2.0, goal=Goal(), ball=Ball(), d
         return s[2] - ball.radius
     ground.terminal, ground.direction = True, -1.0
 
-    sol = solve_ivp(make_rhs(forces, params), (0.0, t_max), np.concatenate((r0, v0)),
+    sol = solve_ivp(make_rhs(forces, params), (0.0, t_max), np.concatenate((r0, v0, [0.0])),
                     method="DOP853", rtol=RTOL, atol=ATOL, events=(plane, ground), dense_output=dense)
     if not sol.success:
         raise RuntimeError(sol.message)
     if sol.t_events[0].size:
         s = sol.y_events[0][0]
-        return sol, Crossing(sol.t_events[0][0], s[:3], s[3:])
+        return sol, Crossing(sol.t_events[0][0], s[:3], s[3:6], s[6])
     return sol, None
 
 
 def positions_at(r0, v0, times, forces, params=None):
     """Ball-centre positions at the given times (all before the goal plane is reached), shape (len(times), 3)."""
-    sol = solve_ivp(make_rhs(forces, params), (0.0, max(times)), np.concatenate((r0, v0)),
+    sol = solve_ivp(make_rhs(forces, params), (0.0, max(times)), np.concatenate((r0, v0, [0.0])),
                     method="DOP853", rtol=RTOL, atol=ATOL, dense_output=True)
     return np.array([sol.sol(t)[:3] for t in times])
