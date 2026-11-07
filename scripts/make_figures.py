@@ -187,7 +187,105 @@ def fig_setup():
     save(fig, "setup")
 
 
-FIGURES = {"setup": fig_setup, "drag_curves": fig_drag_curves, "lift_curves": fig_lift_curves, "cor_and_kick": fig_cor_and_kick,
+def _stage_fits():
+    """Best-fit trajectories of Stages 1-3 (Stage 3 at a literature-typical 5 rev/s), sampled densely: list of (label, xyz)."""
+    from dataclasses import replace
+    from scipy.optimize import least_squares
+    from penalty.constants import P0, TEST_CASE
+    from penalty.forces import AeroParams, drag, gravity, magnus
+    from penalty.integrate import positions_at, simulate
+    from penalty.inverse import fit, spin_basis
+    out = []
+    for lab, F in (("Stage 1: gravity", [gravity]), ("Stage 2: + drag", [gravity, drag])):
+        f = fit(TEST_CASE, F, AeroParams())
+        sol, c = simulate(P0, f.v0, F, AeroParams())
+        out.append((lab, sol.sol(np.linspace(0, c.t, 300))[:3]))
+    F = [gravity, drag, magnus]
+    data = np.array([o.position for o in TEST_CASE]); ts = [o.t for o in TEST_CASE]
+    W = 2 * np.pi * 5.0
+
+    def spin_of(q):
+        e1, e2 = spin_basis(q[:3]); return W * (np.cos(q[3]) * e1 + np.sin(q[3]) * e2)
+
+    def res(q):
+        return ((positions_at(P0, q[:3], ts, F, replace(AeroParams(), spin=spin_of(q))) - data) / 0.01).ravel()
+    q = min((least_squares(res, [30.3, 9.2, 6.9, ph], method="lm") for ph in (-1.4, -1.7)), key=lambda r: r.cost).x
+    sol, c = simulate(P0, q[:3], F, replace(AeroParams(), spin=spin_of(q)))
+    out.append(("Stage 3: + Magnus (5 rev/s)", sol.sol(np.linspace(0, c.t, 300))[:3]))
+    return out
+
+
+def _posterior_trajectories(noise="rounding", n=150, seed=3):
+    """n trajectories drawn from the pooled Stage 4 posterior (reference integrator, full force model), cached in results/raw/."""
+    cache = ROOT / "results" / "raw" / f"fig_traj_{noise}_{n}_{seed}.npz"
+    if cache.exists():
+        return list(np.load(cache)["trajs"])
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from run_stage5 import CURVES, FORCES, sample_params
+    from penalty.constants import P0
+    from penalty.integrate import simulate
+    rng = np.random.default_rng(seed)
+    trajs = []
+    for k in range(n):
+        c = CURVES[k % len(CURVES)]
+        th = np.load(ROOT / "results" / "raw" / f"stage4_{noise}_{c}.npz")["samples"]
+        v0, ball, p = sample_params(th[rng.integers(len(th))], c)
+        sol, cr = simulate(P0, v0, FORCES, p, ball=ball)
+        if cr is not None:
+            trajs.append(sol.sol(np.linspace(0, cr.t, 120))[:3])
+    np.savez_compressed(cache, trajs=np.array(trajs))
+    return trajs
+
+
+def fig_trajectories_3d(noise="rounding", views=((22, -132, "oblique view from behind the kicker"),
+                                                  (3, 180, "kicker's-eye view (towards the goal)"))):
+    """3-D trajectories: Stage 1-3 best fits, a posterior 'spaghetti' (Stage 4), the given positions and the goal frame."""
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+    from penalty.constants import TEST_CASE
+    stages = _stage_fits()
+    post = _posterior_trajectories(noise)
+    pts = np.array([[0, 0, 0.11]] + [o.position for o in TEST_CASE])
+    fig = plt.figure(figsize=(7.2, 3.3))
+    for i, (elev, azim, title) in enumerate(views):
+        ax = fig.add_subplot(1, 2, i + 1, projection="3d")
+        if i == 1:
+            ax.set_proj_type("persp", focal_length=0.45)
+        a, h, X = 3.66, 2.44, 11.0
+        ax.plot([X, X, X, X], [-a, -a, a, a], [0, h, h, 0], color=INK2, lw=2.6, zorder=10)
+        ax.plot([0, X], [0, 0], [0, 0], color=GRID, lw=0.8)
+        for tr in post:
+            ax.plot(*tr, color=SERIES[3], lw=0.5, alpha=0.12)
+        for (lab, tr), col in zip(stages, SERIES):
+            ax.plot(tr[0], tr[1], np.zeros_like(tr[2]), color=GRID, lw=1.0)          # ground shadow (depth cue)
+            ax.plot(*tr, color=col, lw=1.7, label=lab)
+        ax.plot(*pts.T, "o", ms=4, color=INK, mec="white", mew=0.6, zorder=20, label="given positions")
+        ends = np.array([tr[:, -1] for tr in post])
+        ax.scatter(ends[:, 0], ends[:, 1], ends[:, 2], s=4, color=SERIES[3], alpha=0.5, depthshade=False)
+        ax.set_xlim(0, 11.5); ax.set_ylim(-4, 4); ax.set_zlim(0, 3)
+        ax.set_box_aspect((11.5, 8, 3), zoom=0.98 if i == 0 else 1.6)
+        ax.view_init(elev=elev, azim=azim)
+        ax.set_xlabel("$x$ (m)", labelpad=-6); ax.set_ylabel("$y$ (m)", labelpad=-6); ax.set_zlabel("$z$ (m)", labelpad=-8)
+        ax.set_xticks([0, 5.5, 11]); ax.set_yticks([-3.66, 0, 3.66]); ax.set_zticks([0, 2.44])
+        ax.tick_params(labelsize=6, pad=-2)
+        for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
+            axis.pane.fill = False; axis.pane.set_edgecolor(GRID)
+        ax.set_title(title, fontsize=8, loc="left")
+        if i == 1:                                     # the goal frame is the reference: no axes in the kicker's view
+            ax.set_axis_off()
+            ax.plot([X, X], [-a - 1.5, a + 1.5], [0, 0], color=MUTED, lw=0.8)          # goal line
+            ax.text(X, a, -0.35, "$y=+3.66$ m", fontsize=6, color=INK2, ha="center")
+            ax.text(X, -a, -0.35, "$y=-3.66$ m", fontsize=6, color=INK2, ha="center")
+    from matplotlib.lines import Line2D
+    handles = [Line2D([], [], color=c, lw=1.7, label=l) for (l, _), c in zip(stages, SERIES)]
+    handles += [Line2D([], [], color=SERIES[3], lw=0.8, alpha=0.6, label="Stage 4 posterior samples"),
+                Line2D([], [], marker="o", ls="", color=INK, ms=4, label="given positions")]
+    fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=7, bbox_to_anchor=(0.5, -0.02))
+    fig.subplots_adjust(left=0.0, right=1.0, top=0.95, bottom=0.14, wspace=0.0)
+    save(fig, "trajectories_3d")
+
+
+FIGURES = {"setup": fig_setup, "trajectories_3d": fig_trajectories_3d, "drag_curves": fig_drag_curves, "lift_curves": fig_lift_curves, "cor_and_kick": fig_cor_and_kick,
            "stage_trajectories": fig_stage_trajectories}
 
 
