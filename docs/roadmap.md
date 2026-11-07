@@ -37,7 +37,11 @@ docs/               # physics notes per stage
 
 ## Open decisions (to be agreed before the relevant stage)
 1. Ball parameters (m, R): FIFA ranges (410–450 g, 68–70 cm circumference) used as priors or fixed?
-2. Which wind-tunnel dataset for $C_D(Re)$ and $C_L(S)$? (literature pass)
-3. Noise model for the given positions: rounding only (σ ≈ 2.9 mm) or realistic tracking noise (cm-level)?
-4. Is P₀ = (0, 0, 0.11) at t = 0 treated as exact, or as an observation with its own uncertainty?
+2. ~~Which wind-tunnel dataset for $C_D(Re)$ and $C_L(S)$?~~ **Proposed** (literature pass, see `research/literature/README.md`):
+   C_D prior 0.22 ± 0.04 (Alam 2010, Asai 2007) plus a spin term; C_L(S) from Kray 2014 at Re 4.6×10⁵. Still open: a spin-decay
+   source. The main Stage 3 uncertainty is C_L(S, Re) between Kray's two supercritical curves.
+3. ~~Noise model for the given positions?~~ **Decided:** realistic tracking noise, σ = 1 cm per coordinate (isotropic,
+   independent) for the observations at 0.05 s and 0.10 s. Rounding (σ ≈ 2.9 mm) is negligible next to it.
+4. ~~Is P₀ = (0, 0, 0.11) at t = 0 treated as exact?~~ **Decided:** exact in Stages 1–3; bias tested in Stage 5 (the
+   test-case interval lengths already argue against a contact lag, see `research/literature/kick-keeper.md`).
 5. Definition of "enters the goal": centre crossing x = 11 m, or the whole ball over the line?
