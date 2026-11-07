@@ -6,3 +6,6 @@ Entry point = ball-centre crossing of x = 11 m. The σ values cover measurement 
 | Stage | Physics | \|v₀\| (m/s) | χ²/dof | t_goal (s) | Entry y (m) | Entry z (m) | σ_y, σ_z (m) | Outcome | Commit/tag |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | gravity | 31.66 | 6.5 / 3 | 0.371 | 3.217 | 1.957 | 0.035, 0.033 | clean entry | v0.1-gravity-baseline |
+| 2 | gravity + drag (C_D = 0.22 fixed) | 32.19 | 2.38 / 3 | 0.390 | 3.217 | 1.914 | 0.035, 0.033 | clean entry | v0.2-aerodynamic-drag |
+
+Stage 2 C_D switches (literature presets 0.15–0.255, logistic C_D(Re)): y unchanged; z from 1.906 to 1.928 m.
