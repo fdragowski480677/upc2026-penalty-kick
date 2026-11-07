@@ -44,4 +44,16 @@ docs/               # physics notes per stage
    independent) for the observations at 0.05 s and 0.10 s. Rounding (σ ≈ 2.9 mm) is negligible next to it.
 4. ~~Is P₀ = (0, 0, 0.11) at t = 0 treated as exact?~~ **Decided:** exact in Stages 1–3; bias tested in Stage 5 (the
    test-case interval lengths already argue against a contact lag, see `research/literature/kick-keeper.md`).
-5. Definition of "enters the goal": centre crossing x = 11 m, or the whole ball over the line?
+5. ~~Definition of "enters the goal"?~~ **Decided** (team decision, following IFAB Laws of the Game, Law 1 and Law 10):
+   - A goal is scored when the **whole ball** passes over the goal line between the posts and under the crossbar. The goal
+     dimensions (7.32 × 2.44 m) are measured between the **inner edges** of the posts and to the lower edge of the bar.
+   - **Predicted entry point** = the ball-centre position (y, z) where the trajectory crosses the plane x = 11 m (the problem's
+     goal plane).
+   - **Outcome classes** at that crossing, for a ball of radius R:
+     - *clean entry*: |y| ≤ 3.66 − R and z ≤ 2.44 − R. The ball passes without touching the frame.
+     - *frame contact*: the centre comes within R of a post or the bar. The ball touches the frame and may rebound out
+       or deflect in (for example with spin, "in off the post"). **Not modelled in Stages 1–4**; reported as a separate
+       probability. An optional Stage 5 collision model (restitution, friction, spin) could decide in/out.
+     - *miss*: the crossing is outside the frame.
+   - The whole ball is over the line after about R/v_x ≈ 4 ms more of flight, a lateral shift of ≈ 1–2 cm. This is
+     neglected in the entry point and noted as a systematic.
