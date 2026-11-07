@@ -39,8 +39,9 @@ def entry_macros(m, pre, d):
     m[f"{pre}Pclean"] = fmt(100 * po.get("clean entry", 0), 1)
     m[f"{pre}Pframe"] = fmt(100 * po.get("frame contact", 0), 1)
     m[f"{pre}Pmiss"] = fmt(100 * po.get("miss", 0), 1)
-    sp = d["spin_rev_s"]
-    m[f"{pre}SpinMed"], m[f"{pre}SpinLo"], m[f"{pre}SpinHi"] = fmt(sp["median"], 1), fmt(sp["p16"], 1), fmt(sp["p84"], 1)
+    if "spin_rev_s" in d:
+        sp = d["spin_rev_s"]
+        m[f"{pre}SpinMed"], m[f"{pre}SpinLo"], m[f"{pre}SpinHi"] = fmt(sp["median"], 1), fmt(sp["p16"], 1), fmt(sp["p84"], 1)
     if "wind_speed" in d:
         m[f"{pre}WindMed"] = fmt(d["wind_speed"]["median"], 1)
 
@@ -51,7 +52,7 @@ def goal_macros(m, pre, g):
     if g is None:
         m.update({pre + k: "" for k in keys}); return
     no = g["near_frame_outcomes"]
-    m[f"{pre}Pgoal"], m[f"{pre}PgoalSe"] = fmt(100 * g["p_goal"], 1), fmt(100 * g["p_goal_mc_se"], 1)
+    m[f"{pre}Pgoal"], m[f"{pre}PgoalSe"] = fmt(100 * g["p_goal"], 1), fmt(100 * g["p_goal_mc_se"], 2)
     m[f"{pre}Pnear"] = fmt(100 * g["p_near_frame"], 1)
     m[f"{pre}PinOff"] = fmt(100 * no.get("goal off the frame", 0), 0)
     m[f"{pre}PoutOff"] = fmt(100 * no.get("miss off the frame", 0), 0)
@@ -208,6 +209,12 @@ def main():
         c = ROOT / "results" / "final" / f"coverage_{noise}.json"
         if c.exists():
             cov_macros(m, f"cov{key}", json.load(open(c)))
+        # Stage 5 model = kick-mechanics prior + frame impacts, no wind (sensitivity chain final_kick_no_wind, Kray C_L curve)
+        if final[noise].exists():
+            entry_macros(m, f"sfiveE{key}", json.load(open(final[noise]))["sensitivity"]["final_kick_no_wind"]["entry"])
+        for t in template:
+            if t[1:] in ("Ymode", "Zmode", "Ylo", "Yhi", "Zlo", "Zhi", "Ylolo", "Yhihi", "Zlolo", "Zhihi"):
+                m.setdefault(f"sfiveE{key}" + t[1:], "\\TBD{running}")
         for suf in ("L", "K", ""):
             for t in list(template) + ["xNtauMin"]:
                 m.setdefault(f"res{key}{suf}" + t[1:], "\\TBD{running}")

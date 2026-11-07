@@ -172,7 +172,10 @@ def fig_setup():
     _arrow3d(ax, -vr * 1.0, -vr * 1.1, C["orange"], "$\\vec F_D$", off=1.25)
     _arrow3d(ax, fl * 1.0, fl * 1.2, C["green"], "$\\vec F_L$\n(Magnus lift)", fs=8, off=1.3)
     _arrow3d(ax, (0, 0, -1.0), np.array([0, 0, -0.9]), C["blue"], "$m\\vec g$", off=1.25)
-    _arrow3d(ax, (-1.6, 1.6, 1.4), np.array([0.0, 0.9, 0.0]), C["violet"], "$\\vec w$")
+    # wind: three parallel streamlines next to the ball (an air flow, not a force on a point), labelled in words
+    for dz in (-0.35, 0.0, 0.35):
+        ax.quiver(-1.9, 0.2, 1.55 + dz, 0.0, 1.0, 0.0, color=C["violet"], lw=1.2, arrow_length_ratio=0.25, linestyle=(0, (4, 2)))
+    ax.text(-1.9, 1.35, 2.15, "wind $\\vec w$\n(air flow)", color=C["violet"], fontsize=9)
     # spin: axis through the ball and a circular arrow around it (right-hand rule)
     ax.plot(*np.outer([-1.6, 1.6], w_axis).T, color=INK2, lw=0.9, ls=(0, (3, 2)))
     e1 = np.cross(w_axis, [1, 0, 0]); e1 /= np.linalg.norm(e1); e2 = np.cross(w_axis, e1)
@@ -182,7 +185,7 @@ def fig_setup():
     ax.plot(*ring, color=C["red"], lw=1.6)
     tip, prev = ring[:, -1], ring[:, -4]
     ax.quiver(*prev, *(tip - prev) * 1.6, color=C["red"], lw=1.6, arrow_length_ratio=0.9)
-    ax.text(*(centre + 0.65 * e1 + np.array([0, 0, 0.25])), "$\\vec\\omega$", color=C["red"], fontsize=11)
+    ax.text(*(centre + 0.65 * e1 + np.array([0, 0, 0.25])), "spin $\\vec\\omega$", color=C["red"], fontsize=10)
     ax.set_xlim(-2.3, 2.3); ax.set_ylim(-2.3, 2.3); ax.set_zlim(-2.3, 2.3); ax.set_box_aspect((1, 1, 1), zoom=1.2)
     ax.view_init(elev=24, azim=-135); _clean3d(ax, ticks=False)
     ax.set_title("(b) forces on the spinning ball (schematic)", loc="left", fontsize=8)
@@ -264,12 +267,49 @@ def fig_profile_likelihood():
     print("profile: ", np.round(a, 3).tolist())
 
 
+BAYES_STAGES = [   # (label, colour, chain prefix, files) ; Stages 5-6 need the final production run (results/final/)
+    ("Stage 4: Bayesian, log-normal spin", C["violet"], "", None),
+    ("Stage 5: + kick-mechanics spin prior", C["aqua"], "final_kick_", [("no_wind", "kray2014_re462")]),
+    ("Stage 6: + wind (final model)", C["red"], "final_kick_", None),
+]
+
+
+def _bayes_stage_paths(noise="rounding", n=150):
+    """For each Bayesian stage whose chains exist: (label, colour, trajectories, representative trajectory). The representative
+    trajectory is the posterior sample whose entry point is closest to the most probable entry point of that stage."""
+    have_final = (ROOT / "results" / "final" / f"summary_final_{noise}.json").exists()
+    out = []
+    for lab, col, prefix, files in BAYES_STAGES:
+        if prefix and not have_final:
+            continue
+        tr = _posterior_trajectories(noise, n=n, prefix=prefix, files=files)
+        ends = np.array([t[1:, -1] for t in tr])
+        *_, mode = _hpd(ends)
+        rep = tr[int(np.argmin(np.hypot(ends[:, 0] - mode[0], ends[:, 1] - mode[1])))]
+        out.append((lab, col, tr, rep))
+    return out
+
+
+def _band(trajs, k, xg):
+    """16-84 % envelope of coordinate k as a function of x."""
+    v = np.array([np.interp(xg, t[0], t[k]) for t in trajs])
+    return np.percentile(v, 16, axis=0), np.percentile(v, 84, axis=0)
+
+
 def fig_stage_trajectories():
     from penalty.constants import P0, TEST_CASE
     stages = _stage_fits()
-    fig, (top, side) = plt.subplots(2, 1, figsize=(6.4, 4.4), sharex=True)
+    fig, axs = plt.subplots(2, 2, figsize=(7.2, 5.4), gridspec_kw={"width_ratios": [2.2, 1]})
+    (top, ztop), (side, zside) = axs
+    top.sharex(side)
     for (lab, tr), (col, ls) in zip(stages, STAGE):
         top.plot(tr[0], tr[1], color=col, ls=ls, label=lab); side.plot(tr[0], tr[2], color=col, ls=ls)
+    xg = np.linspace(0, 11, 120)
+    for lab, col, trs, rep in _bayes_stage_paths():
+        for ax, k in ((top, 1), (side, 2)):
+            lo, hi = _band(trs, k, xg)
+            ax.fill_between(xg, lo, hi, color=col, alpha=0.15, lw=0)
+            ax.plot(rep[0], rep[k], color=col, lw=1.4, ls=(0, (1, 1)), label=lab + " (68 % band)" if k == 1 else None)
     for ax, k in ((top, 1), (side, 2)):
         ax.plot([0] + [o.position[0] for o in TEST_CASE], [P0[k]] + [o.position[k] for o in TEST_CASE], ".", ms=8,
                 color=INK, zorder=5, label="given positions" if k == 1 else None)
@@ -277,15 +317,33 @@ def fig_stage_trajectories():
     top.axhline(3.66, color=INK2, lw=2.2); top.text(0.2, 3.5, "post ($y=3.66$ m)", va="top", color=INK2, fontsize=8)
     side.axhline(2.44, color=INK2, lw=2.2); side.text(0.2, 2.30, "crossbar ($z=2.44$ m)", va="top", color=INK2, fontsize=8)
     top.set_ylabel("$y$ (m), lateral"); side.set_ylabel("$z$ (m), height"); side.set_xlabel("$x$ (m), towards goal")
-    top.set_xlim(0, 11.5); top.set_ylim(-0.2, 4.0); top.legend(loc="lower right")
+    top.set_xlim(0, 11.5); top.set_ylim(-0.2, 4.0)
     top.set_title("top view", loc="left"); side.set_title("side view", loc="left")
-    fig.tight_layout()
+    # zoom on the last 1.5 m before the goal, where the stages separate
+    for ax, k, ylim, ins in ((top, 1, (2.3, 3.3), ztop), (side, 2, (1.75, 2.15), zside)):
+        for (lab, tr), (col, ls) in zip(stages, STAGE):
+            ins.plot(tr[0], tr[k], color=col, ls=ls)
+        for lab, col, trs, rep in _bayes_stage_paths():
+            lo, hi = _band(trs, k, xg)
+            ins.fill_between(xg, lo, hi, color=col, alpha=0.15, lw=0)
+            ins.plot(rep[0], rep[k], color=col, lw=1.4, ls=(0, (1, 1)))
+        ins.axvline(11.0, color=INK2, lw=0.8)
+        ins.set_xlim(9.5, 11.05); ins.set_ylim(*ylim); ins.tick_params(labelsize=7)
+        ins.set_title("zoom: last 1.5 m before the goal", loc="left", fontsize=8)
+        ax.add_patch(matplotlib.patches.Rectangle((9.5, ylim[0]), 1.55, ylim[1] - ylim[0], fill=False, ec=MUTED, lw=0.8))
+    zside.set_xlabel("$x$ (m)")
+    h, l = top.get_legend_handles_labels()
+    fig.legend(h, l, loc="lower center", ncol=2, fontsize=7.5, bbox_to_anchor=(0.5, -0.02))
+    fig.tight_layout(rect=(0, 0.15, 1, 1))
     save(fig, "stage_trajectories")
 
 
-def _posterior_trajectories(noise="rounding", n=150, seed=3):
-    """n trajectories drawn from the pooled Stage 4 posterior (reference integrator, full force model), cached in results/raw/."""
-    cache = ROOT / "results" / "raw" / f"fig_traj_{noise}_{CHAINS}{n}_{seed}.npz"
+def _posterior_trajectories(noise="rounding", n=150, seed=3, prefix=None, files=None):
+    """n trajectories drawn from a pooled posterior (reference integrator, full force model), cached in results/raw/.
+    prefix: chain-file prefix (default: the CHAINS setting); files: list of (file label, C_L curve) pairs (default: 4 curves)."""
+    prefix = CHAINS if prefix is None else prefix
+    tag = "" if files is None else "_" + "_".join(f for f, _ in files)
+    cache = ROOT / "results" / "raw" / f"fig_traj_{noise}_{prefix}{n}_{seed}{tag}.npz"
     if cache.exists():
         return list(np.load(cache)["trajs"])
     import sys
@@ -295,9 +353,11 @@ def _posterior_trajectories(noise="rounding", n=150, seed=3):
     from penalty.integrate import simulate
     rng = np.random.default_rng(seed)
     trajs = []
+    files = files or [(c, c) for c in CURVES]
+    chains = {f: np.load(ROOT / "results" / "raw" / f"stage4_{noise}_{prefix}{f}.npz")["samples"] for f, _ in files}
     for k in range(n):
-        c = CURVES[k % len(CURVES)]
-        th = np.load(ROOT / "results" / "raw" / f"stage4_{noise}_{CHAINS}{c}.npz")["samples"]
+        f, c = files[k % len(files)]
+        th = chains[f]
         v0, ball, p = sample_params(th[rng.integers(len(th))], c)
         sol, cr = simulate(P0, v0, FORCES, p, ball=ball)
         if cr is not None:
@@ -331,6 +391,7 @@ def fig_trajectories_3d(noise="rounding"):
     from penalty.constants import TEST_CASE
     stages = _stage_fits()
     post = _posterior_trajectories(noise)
+    bayes = _bayes_stage_paths(noise)
     Y, Z, D, lev, mode = _hpd(_pooled_entries(noise))
     regions = {}
     cs = plt.figure().add_subplot().contour(Y, Z, D, levels=[lev[0.95], lev[0.68]])
@@ -356,6 +417,8 @@ def fig_trajectories_3d(noise="rounding"):
         for (lab, tr), (col, ls) in zip(stages, STAGE):
             ax.plot(tr[0], tr[1], np.zeros_like(tr[2]), color=GRID, lw=0.8)          # ground shadow (depth cue)
             ax.plot(*tr, color=col, ls=ls, lw=1.1)
+        for lab, col, _, rep in bayes:
+            ax.plot(*rep, color=col, lw=1.4, ls=(0, (1, 1)))
         ax.plot(*pts.T, ".", ms=7, color=INK, zorder=20)
         ax.set_xlim(0, 11.5); ax.set_ylim(-4, 4); ax.set_zlim(0, 3)
         ax.set_box_aspect((11.5, 8, 3), zoom=0.98 if i == 0 else 1.6)
@@ -370,11 +433,12 @@ def fig_trajectories_3d(noise="rounding"):
             ax.text(X, a, -0.35, "$y=+3.66$ m", fontsize=6, color=INK2, ha="center")
             ax.text(X, -a, -0.35, "$y=-3.66$ m", fontsize=6, color=INK2, ha="center")
     handles = [Line2D([], [], color=c, ls=ls, lw=1.3, label=l) for (l, _), (c, ls) in zip(stages, STAGE)]
-    handles += [Line2D([], [], color=POST, lw=0.8, alpha=0.6, label="posterior trajectories"),
+    handles += [Line2D([], [], color=col, lw=1.4, ls=(0, (1, 1)), label=lab) for lab, col, _, _ in bayes]
+    handles += [Line2D([], [], color=POST, lw=0.8, alpha=0.6, label="posterior trajectories (final model)"),
                 matplotlib.patches.Patch(color=SEQ[5], alpha=0.6, label="68 % entry region"),
                 matplotlib.patches.Patch(color=SEQ[2], alpha=0.5, label="95 % entry region"),
                 Line2D([], [], marker=".", ls="", color=INK, ms=7, label="given positions")]
-    fig.legend(handles=handles, loc="lower center", ncol=4, fontsize=7, bbox_to_anchor=(0.5, -0.04))
+    fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=7, bbox_to_anchor=(0.5, -0.08))
     fig.subplots_adjust(left=0.0, right=1.0, top=0.95, bottom=0.16, wspace=0.0)
     save(fig, "trajectories_3d")
 
@@ -452,7 +516,74 @@ def fig_example_3d():
 
 FIGURES = {"setup": fig_setup, "drag_curves": fig_drag_curves, "lift_curves": fig_lift_curves, "cor_and_kick": fig_cor_and_kick,
            "stage_trajectories": fig_stage_trajectories, "profile_likelihood": fig_profile_likelihood, "trajectories_3d": fig_trajectories_3d,
-           "goal_face_rounding": fig_goal_face, "example_in_off_post": fig_example_3d}
+           "goal_face_rounding": fig_goal_face, "goal_probability": fig_goal_probability, "example_in_off_post": fig_example_3d}
+
+
+def fig_goal_probability(noise="rounding"):
+    """(a) P(goal | ball-centre crossing point) on the goal face, from the frame-impact Monte Carlo of goal_probability_map.py,
+    with the final-model posterior entry regions; (b) the two scans across the post and the crossbar, split by outcome;
+    (c) outcome probabilities of the posterior shot for each noise model and spin prior."""
+    import json
+    gm = json.load(open(ROOT / "results" / "final" / f"goal_map_{noise}.json"))
+    post, bar = gm["scans"]["post"], gm["scans"]["crossbar"]
+    yp, pp = np.array([r["y"] for r in post]), np.array([r["p_goal"] for r in post])
+    zb, pb = np.array([r["z"] for r in bar]), np.array([r["p_goal"] for r in bar])
+    fy = lambda y: np.interp(np.abs(y), yp, pp, left=1.0, right=0.0)
+    fz = lambda z: np.interp(z, zb, pb, left=1.0, right=0.0)
+    Y, Z = np.meshgrid(np.linspace(-4.3, 4.3, 600), np.linspace(0.11, 3.0, 220))
+    P = fy(Y) * fz(Z)                       # separable approximation (exact away from the two top corners)
+    fig = plt.figure(figsize=(7.2, 6.6))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1.15, 1], hspace=0.38, wspace=0.28)
+    a1 = fig.add_subplot(gs[0, :])
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("seq", ["#ffffff"] + SEQ)
+    im = a1.pcolormesh(Y, Z, P, cmap=cmap, vmin=0, vmax=1, shading="auto", rasterized=True)
+    for r in ((3.66, 0), (-3.78, 0)):
+        a1.add_patch(matplotlib.patches.Rectangle(r, 0.12, 2.56, color=INK2))
+    a1.add_patch(matplotlib.patches.Rectangle((-3.78, 2.44), 7.56, 0.12, color=INK2))
+    e = _pooled_entries(noise)
+    Yk, Zk, D, lev, mode = _hpd(e, grid_y=(-3.9, 4.1), grid_z=(0.0, 2.9), n=320)
+    a1.contour(Yk, Zk, D, levels=[lev[0.95], lev[0.68]], colors=[C["orange"], C["red"]], linewidths=[1.0, 1.4])
+    a1.plot(*mode, "x", color=C["red"], ms=8, mew=1.8)
+    a1.set_xlim(-4.3, 4.3); a1.set_ylim(0, 3.0); a1.set_aspect("equal"); a1.set_xlabel("$y$ (m)"); a1.set_ylabel("$z$ (m)")
+    a1.set_title("(a) probability of a goal for a ball centre crossing the goal plane at $(y,z)$", loc="left")
+    cb = fig.colorbar(im, ax=a1, fraction=0.025, pad=0.01); cb.set_label("$P(\\mathrm{goal}\\mid y,z)$")
+    a1.legend(handles=[Line2D([], [], color=C["red"], lw=1.4, label="68 % posterior region"),
+                       Line2D([], [], color=C["orange"], lw=1.0, label="95 % posterior region"),
+                       Line2D([], [], marker="x", ls="", color=C["red"], mew=1.8, label="most probable entry")],
+              loc="lower center", ncol=3, fontsize=8, bbox_to_anchor=(0.5, -0.42))
+    a2 = fig.add_subplot(gs[1, 0])
+    for rows, key, edge, lab, col in ((post, "y", 3.66, "post (scan in $y$)", C["blue"]), (bar, "z", 2.44, "crossbar (scan in $z$)", C["violet"])):
+        d = np.array([r[key] for r in rows]) - edge
+        a2.plot(d * 100, [r["p_goal"] for r in rows], color=col, lw=1.5, label=f"{lab}: $P$(goal)")
+        a2.plot(d * 100, [r["goal off the frame"] for r in rows], color=col, lw=1.0, ls=(0, (4, 2)), label=f"{lab}: in off the frame")
+    a2.axvline(0, color=INK2, lw=0.8); a2.axvline(-11, color=MUTED, lw=0.8, ls=":")
+    a2.text(1, 0.55, "inner edge", fontsize=7, color=INK2); a2.text(-10, 0.3, "$-R$", fontsize=7, color=MUTED)
+    a2.set_xlabel("crossing point relative to the inner edge (cm)"); a2.set_ylabel("probability")
+    a2.set_title("(b) across the frame", loc="left"); a2.legend(fontsize=6.5, loc="upper right"); a2.set_ylim(-0.02, 1.05)
+    a3 = fig.add_subplot(gs[1, 1])
+    cats = [("goal off the frame", C["aqua"]), ("miss off the frame", C["orange"]), ("miss", MUTED)]
+    cases = []
+    for nz, lab in (("rounding", "rounding"), ("tracking", "tracking")):
+        for sp, sl in (("kick", "kick"), ("lognormal", "log-n.")):
+            f = ROOT / "results" / "final" / f"goal_probability_{nz}_{sp}.json"
+            if f.exists():
+                g = json.load(open(f)); no = g["near_frame_outcomes"]
+                cases.append((f"{lab}\n{sl}", {"clean goal": g["p_far_clean_goal"] + g["p_near_frame"] * no.get("clean goal", 0),
+                                                "goal off the frame": g["p_near_frame"] * no.get("goal off the frame", 0),
+                                                "miss off the frame": g["p_near_frame"] * no.get("miss off the frame", 0),
+                                                "miss": g["p_far_miss"] + g["p_near_frame"] * no.get("miss", 0)}, g["p_goal"]))
+    x = np.arange(len(cases))
+    for i, (lab, fr, pg) in enumerate(cases):
+        bottom = 0.0
+        for c, col in cats:
+            a3.bar(i, 100 * fr[c], bottom=bottom, color=col, width=0.62, edgecolor="white", lw=0.6)
+            bottom += 100 * fr[c]
+        a3.text(i, bottom, f"$P$(goal)\n{100 * pg:.1f} %", ha="center", va="bottom", fontsize=7, color=INK)
+    a3.set_xticks(x); a3.set_xticklabels([c[0] for c in cases], fontsize=7)
+    a3.set_ylim(0, 1.35 * max([sum(100 * fr[c] for c, _ in cats) for _, fr, _ in cases] + [0.5]))
+    a3.set_ylabel("share of posterior shots (%)"); a3.set_title("(c) shots that are not clean goals", loc="left")
+    a3.legend(handles=[matplotlib.patches.Patch(color=col, label=c) for c, col in cats], fontsize=6.5, loc="upper left")
+    save(fig, "goal_probability")
 
 
 CHAINS = ""   # chain-file prefix: "" = Stage 4 posterior, "final_<spin prior>_" = final unified model (set in main)
