@@ -196,7 +196,7 @@ Consistency check: 3.8 N at 35 m/s, with ρ = 1.2 and A = 0.038 m², gives C_D �
 | 0.25 | 0.26–0.28 | 0.24–0.30 |
 | 0.30 | 0.28–0.29 | 0.30–0.33 |
 
-- **Speed independence.** C_D is about linear in Sp and roughly independent of Re over this range [text] p. 106. My fit to the figure: C_D ≈ 0.15 + 0.45·Sp.
+- **Speed independence.** C_D is about linear in Sp and roughly independent of Re over this range [text] p. 106. My fit to the figure: C_D ≈ 0.15 + 0.45·Sp. *(Coordinator check: confirmed, slope ≈ 0.47. Hörzer 2010's 0.80 fit to this figure is inconsistent with it.)*
 - **Real kicks.** A real high-speed curve kick had C_D ≈ 0.3 [text] p. 106. In flight at 27 m/s, 7 rev/s (Sp ≈ 0.18), C_D and C_S were both estimated at about 0.25 [text] p. 107.
 - **Separation angle.** About 90° at 5 m/s and about 120° at 29 m/s (visualisation) [text]. The non-spinning wake showed large-scale undulation, which the authors attribute to a possible knuckle effect [text].
 

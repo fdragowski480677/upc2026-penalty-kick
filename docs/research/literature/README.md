@@ -1,6 +1,6 @@
 # Literature notes: index and consolidated parameters
 
-The sources are the 20 papers cited by the 2022 reports (PDFs kept locally in `references/2022/`, not committed).
+The sources are the 20 papers cited by the 2022 reports, plus 3 added by the team for Stage 3 (PDFs kept locally in `references/2022/`, not committed).
 Detailed notes per cluster:
 
 | File | Cluster | Sources |
@@ -8,6 +8,7 @@ Detailed notes per cluster:
 | [`drag.md`](drag.md) | C_D vs Re, drag crisis, roughness/seams | Achenbach 1972, 1974; Mehta 1985; Asai 1998, 2007; Carré 2005; Alam 2010; Oggiano 2010 |
 | [`lift-spin.md`](lift-spin.md) | Magnus/lift, spin, knuckle effect | Kray 2014; Bray & Kerwin 2003; Barber 2007, 2009; Watts & Sawyer 1975; Wesson 2002; Haake (ed.) 1996 |
 | [`kick-keeper.md`](kick-keeper.md) | Foot–ball contact, launch speeds, goalkeeper timing | Ravenscroft & Linthorne 2015; Ishii 2012; Naito 2010; Hunter 2018; Murakami 1988 |
+| [`spin-decay-and-free-flight.md`](spin-decay-and-free-flight.md) | Spin decay, spin-dependent drag, free-flight Magnus data, air density | James & Haake 2008; Hörzer 2010; Asai 2020 (read in full by the coordinator) |
 
 Many values were **read by eye from figures** (marked "fig." in the cluster notes, typically ±0.01–0.02 in a coefficient).
 
@@ -24,7 +25,7 @@ Conditions: v ≈ 31.5 m/s, Re ≈ 4.6×10⁵ (supercritical throughout the flig
 | C_L from real kicks | 0.26 | 0.23–0.29 ± 0.05 | Bray & Kerwin 2003 | consistent |
 | Inverse Magnus | — | only at Re ≈ 2×10⁵ (≈ 14 m/s) | Kray 2014 | excluded for us |
 | Seam-induced side force | 0 | C_S ~ N(0, 0.03–0.05²), max ≈ 0.1 | Barber 2009; Kray 2014 Fig. 3 | nuisance term (cannot be told apart from Magnus in 0.1 s) |
-| Spin decay | none | ±5 % systematic over the flight (C_M 0.005–0.02, our estimate) | — | **unsourced, open** |
+| Spin decay | none | dω/dt = −kω|v|/R; k = 1.4×10⁻⁴ (≈ 1.5 % over the flight), upper bound 2×10⁻³ | Asai 2020 (free flight); James & Haake 2008 | **sourced** (spin-decay-and-free-flight.md) |
 | Typical penalty spin | 2–8 rev/s | S ≈ 0.045–0.18 | Wesson 2002; Bray & Kerwin; Kray inversion | estimated |
 | Launch speed | — | university 23.9 ± 1.2 m/s; elite mean ≈ 31, max ≈ 36 m/s | Ravenscroft & Linthorne 2015; Wesson 2002 | verified |
 | Launch elevation | — | 8 ± 5° | Ravenscroft & Linthorne 2015 | verified |
