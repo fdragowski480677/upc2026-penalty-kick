@@ -79,3 +79,34 @@ This is to be checked properly in Stage 5 with the foot–ball contact model.
 | Ball mass m | Law 2: 410–450 g (FIFA PRO tighter); water uptake on a wet day | aerodynamic acceleration ∝ ρR²/m, **first order** |
 | Ball radius R | circumference 68–70 cm | ∝ R² in K; also in S = Rω/v and Re |
 | Internal pressure | 0.6–1.1 atm gauge; p_abs ∝ T at fixed volume | **none in flight** (rigid shell); sets COR and contact time → Stage 5 |
+
+## 8. Hong & Asai 2014: Effect of panel shape of soccer ball on its flight characteristics
+*Sci. Rep. 4, 5068. doi:10.1038/srep05068.* Read by the coordinator; Fig. 3 verified.
+- Wind tunnel (Tsukuba, turbulence ≤ 0.1 %, rear sting), 7–35 m/s, two panel orientations; balls Brazuca (6 panels), Cafusa (32),
+  Jabulani (8), Teamgeist 2 (14), conventional (32). Plus an impact kick robot at 30 m/s, < 1 rotation, 25 m to a goal, 20 kicks per orientation.
+- **Supercritical C_D at Re ≈ 4.5–5×10⁵ (Fig. 3):** Brazuca ≈ 0.20; Cafusa ≈ 0.17; Jabulani 0.14–0.17; Teamgeist 2 0.21–0.23;
+  conventional 0.19–0.21. Critical Re ≈ 2.2–3.6×10⁵ depending on the ball and orientation.
+- Unsteady side and lift forces grow from 20 to 30 m/s and correlate with total seam length. Non-spinning impact-point SDs over 25 m are
+  0.13–0.68 m (knuckling). **Our ball spins at ≥ 2 rev/s**, which averages these forces out (Kray 2014; Barber 2009).
+
+## 9. Goff, Hong & Asai 2018: Aerodynamic and surface comparisons between Telstar 18 and Brazuca
+*Proc. IMechE Part P. doi:10.1177/1754337118773214.* Read by the coordinator; Figs. 5–10 verified.
+- The same tunnel, non-spinning, 7–35 m/s, two orientations; ν = 1.54×10⁻⁵ at 24 °C, ρ = 1.2, A = 0.038 m². Masses: Telstar 18 0.429 kg, Brazuca 0.426 kg.
+- **C_D at 28–35 m/s:** Telstar 18 ≈ 0.20 (0°), 0.20–0.21 (45°); Brazuca ≈ 0.19–0.20. Critical speed ≈ 15 m/s.
+- **Steady side and lift coefficients above the critical speed are within ≈ ±0.03** (one point at −0.09 at 35 m/s). Lateral knuckle deflection is ≤ 4 % of range.
+- Seams: Telstar 18 has 6 panels, 4.32 m of seams, 1.1 mm deep; Brazuca has 6 panels, 3.32 m, 1.4 mm. Longer but shallower seams give a similar aerodynamic roughness.
+- **Implications:** (i) for a modern six-panel World Cup ball (the closest proxy for Trionda), C_D ≈ 0.20. That is within our prior N(0.22, 0.04),
+  which is kept as decided; the new presets are switches. (ii) The seam/orientation nuisance prior σ_C_S = 0.03 is confirmed.
+
+## 10. FIFA Quality Programme for Footballs (web page) and goal frame (team table)
+- The page names the seven tests (weight, circumference, roundness, bounce, water absorption, loss of pressure, shape and size retention) and says
+  Quality PRO passes them "under even more demanding conditions". **No numerical limits are on the page, and no test-manual PDF is linked.**
+  The file added to the references index (FIFA-TTM-I) is the *football turf* manual and is not present in the folder. **The ball ranges
+  therefore stay at IFAB Law 2.**
+- Goal frame (team table): internal 7.32 × 2.44 m, external 7.56 × 2.56 m, post/bar width and depth ≤ 120 mm, profiles round, elliptical, square,
+  rectangular or hybrid. This is consistent with `constants.Goal` (frame width 0.12 m). The profile matters only for the Stage 5 collision normal.
+
+## 11. Venue altitudes (team table) and ISA densities
+Mexico City 2240 m (ρ_ISA 0.982), Guadalajara 1670 m (1.040), Monterrey 550 m (1.162), sea level 1.225 kg/m³. These are reproduced by
+`environment.py` (test). Our Monte Carlo uses summer match temperatures (12–35 °C) instead of the ISA lapse-rate temperature, so at altitude it gives
+lower densities (e.g. Mexico City ≈ 0.88–0.95 kg/m³ at 20–30 °C).
