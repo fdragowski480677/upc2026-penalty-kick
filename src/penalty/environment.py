@@ -8,7 +8,8 @@ Physics [theory]:
   The kinematic viscosity is ν = μ/ρ.
 Humidity *lowers* ρ (water vapour is lighter than dry air). Altitude is by far the largest effect (Hörzer 2010).
 
-Venue envelope: FIFA World Cup 2026 stadiums (team decision). The altitudes are approximate (± ~20 m) and should be verified.
+Venue envelope: FIFA World Cup 2026 stadiums (team decision). Mexico City 2240 m, Guadalajara 1670 m and Monterrey 550 m come from the team's
+venue table (references/2022/literature.txt). The US and Canadian venues are approximate (± ~20 m; all < 300 m, so their effect on ρ is < 0.3 %).
 Several stadiums are roofed or air-conditioned; the broad temperature range is a conservative envelope.
 """
 import numpy as np
@@ -23,8 +24,8 @@ WC2026_VENUES = [
     ("Levi's Stadium", "San Francisco Bay Area", 10), ("Hard Rock Stadium", "Miami", 3), ("Mercedes-Benz Stadium", "Atlanta", 300),
     ("Lumen Field", "Seattle", 5), ("NRG Stadium", "Houston", 15), ("Lincoln Financial Field", "Philadelphia", 10),
     ("Arrowhead Stadium", "Kansas City", 260), ("Gillette Stadium", "Boston", 80), ("BMO Field", "Toronto", 80),
-    ("BC Place", "Vancouver", 5), ("Estadio Azteca", "Mexico City", 2240), ("Estadio Akron", "Guadalajara", 1570),
-    ("Estadio BBVA", "Monterrey", 500),
+    ("BC Place", "Vancouver", 5), ("Estadio Azteca", "Mexico City", 2240), ("Estadio Akron", "Guadalajara", 1670),
+    ("Estadio BBVA", "Monterrey", 550),
 ]
 
 

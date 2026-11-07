@@ -27,6 +27,14 @@ def test_isa_pressure_at_mexico_city():
     assert pressure_at_altitude(2240.0) == pytest.approx(77.2e3, rel=0.01)
 
 
+def test_team_venue_table_isa_densities():
+    """The team's venue table gives ISA densities (15 °C at sea level, standard lapse rate): 0.982 / 1.040 / 1.162 kg/m³."""
+    from penalty.environment import T0_ISA, LAPSE
+    for h, rho_ref in ((2240, 0.982), (1670, 1.040), (550, 1.162)):
+        t_c = T0_ISA - LAPSE * h - 273.15
+        assert air_density(t_c, pressure_at_altitude(h), 0.0) == pytest.approx(rho_ref, abs=0.003)
+
+
 def test_envelope_and_prior():
     rho, t, alt = sample_environment(50_000, np.random.default_rng(0))
     assert 0.80 < rho.min() and rho.max() < 1.30
