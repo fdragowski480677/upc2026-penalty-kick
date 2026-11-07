@@ -28,6 +28,8 @@ def main():
     pr, b, g = Priors(), Ball(), Goal()
     # ---- simulation parameters (from the code) ----
     m["parMass"], m["parRadius"], m["parGoalX"] = fmt(b.mass, 2), fmt(b.radius, 2), fmt(g.x, 0)
+    from penalty.constants import Air
+    m["parRhoNominal"] = fmt(Air().density, 2)
     m["parMassLo"], m["parMassHi"] = fmt(pr.mass_bounds[0] * 1000, 0), fmt(pr.mass_bounds[1] * 1000, 0)
     m["parCircLo"], m["parCircHi"] = fmt(pr.circ_bounds[0] * 100, 0), fmt(pr.circ_bounds[1] * 100, 0)
     m["parCDmean"], m["parCDsd"] = fmt(pr.cd0_mean, 2), fmt(pr.cd0_sd, 2)
