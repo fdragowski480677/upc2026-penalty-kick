@@ -1,6 +1,7 @@
 """Forward prediction of the goal-plane crossing from a fit, with linearised uncertainty propagation.
 
-The entry-point covariance is C_yz = J C_v0 Jᵀ, where J = ∂(y, z)_cross / ∂v0 (central finite differences).
+The entry-point covariance is C_yz = J C_θ Jᵀ, where J = ∂(y, z)_cross / ∂θ (central finite differences over all fitted
+parameters: v0 and, in Stage 3, the spin components).
 This propagates measurement noise only. Model uncertainty (missing physics, uncertain coefficients) is not
 included; Stage 4 adds it.
 """
@@ -10,6 +11,7 @@ import numpy as np
 
 from .constants import P0, Ball, Goal
 from .integrate import simulate
+from .inverse import unpack
 from .outcome import classify
 
 
@@ -26,20 +28,23 @@ class Prediction:
         return np.sqrt(np.diag(self.cov_yz))
 
 
-def _cross_yz(v0, forces, params, r0, goal):
-    _, c = simulate(r0, v0, forces, params, goal=goal, dense=False)
+def _cross(theta, fit_spin, forces, params, r0, goal):
+    v0, p = unpack(theta, params, fit_spin)
+    _, c = simulate(r0, v0, forces, p, goal=goal, dense=False)
     if c is None:
         raise ValueError("trajectory does not reach the goal plane")
     return c
 
 
-def predict(fit, forces, params=None, r0=P0, goal=Goal(), ball=Ball(), h=1e-4):
-    c = _cross_yz(fit.v0, forces, params, r0, goal)
-    J = np.zeros((2, 3))
-    for i in range(3):
-        dv = np.zeros(3); dv[i] = h
-        yp = _cross_yz(fit.v0 + dv, forces, params, r0, goal).position[1:]
-        ym = _cross_yz(fit.v0 - dv, forces, params, r0, goal).position[1:]
-        J[:, i] = (yp - ym) / (2 * h)
+def predict(fit, forces, params=None, r0=P0, goal=Goal(), ball=Ball(), h=None):
+    theta = fit.theta
+    c = _cross(theta, fit.fit_spin, forces, params, r0, goal)
+    J = np.zeros((2, theta.size))
+    for i in range(theta.size):
+        d = np.zeros(theta.size)
+        d[i] = h if h is not None else 1e-5 * max(1.0, abs(theta[i]))
+        yp = _cross(theta + d, fit.fit_spin, forces, params, r0, goal).position[1:]
+        ym = _cross(theta - d, fit.fit_spin, forces, params, r0, goal).position[1:]
+        J[:, i] = (yp - ym) / (2 * d[i])
     yz = c.position[1:]
     return Prediction(c.t, yz, J @ fit.cov @ J.T, classify(*yz, ball=ball, goal=goal), float(np.linalg.norm(c.velocity)))

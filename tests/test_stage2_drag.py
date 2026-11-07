@@ -47,7 +47,7 @@ def test_terminal_velocity():
 
 def test_drag_dissipates_energy():
     sol, _ = simulate(P0, np.array([30.0, 8.0, 6.0]), [gravity, drag], DEFAULT)
-    E = 0.5 * np.sum(sol.y[3:] ** 2, axis=0) + G * sol.y[2]
+    E = 0.5 * np.sum(sol.y[3:6] ** 2, axis=0) + G * sol.y[2]
     assert np.all(np.diff(E) < 0)
 
 
