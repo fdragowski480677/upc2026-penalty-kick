@@ -180,6 +180,9 @@ Data: $P_0=(0,0,0.11)$ at t = 0, $P_1=(1.50,0.45,0.44)$ at 0.05 s, $P_2=(2.96,0.
   The launch is ≈ 12° up and ≈ 17° to the side (+y).
 - **Mean acceleration:** $\bar a=(-16,-16,-12)$ m/s². With 0.01 m rounding of the given positions,
   $\sigma_a\approx2.6$ m/s² per component (rounding only; real tracking noise would be larger).
+  > **Correction (Stage 1):** with the adopted σ = 1 cm noise, $\sigma_a\approx9$ m/s² per component, so the lateral
+  > signal below is only ≈ 1.8σ and gravity alone is not rejected (χ²/dof = 6.5/3). Spin is physically plausible but
+  > *not* demonstrated by the data alone. See `docs/stages/stage1-gravity-baseline.md`.
 - **Decomposition:** subtract gravity $(0,0,-9.81)$ and project onto $\hat v$ and the perpendicular plane:
   - Component along $-\hat v$ → drag → $C_D\approx0.35$ (taking m = 0.43 kg, R = 0.11 m, ρ = 1.2 kg/m³). The noise is
     large: the difference between $C_D$ = 0.22 and 0.35 is only ≈ 17 mm in the second difference of position.

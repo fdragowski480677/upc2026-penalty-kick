@@ -20,5 +20,9 @@ python3 -m venv .venv
 ```
 
 ## Repository layout
-- `docs/` — research notes, analysis of the 2022 reference reports, roadmap
+- `src/penalty/` — simulation package (forces, dynamics, integrator, inverse fit, prediction, outcome)
+- `tests/` — verification tests (`.venv/bin/python -m pytest`)
+- `scripts/` — runnable stage scripts (`PYTHONPATH=src .venv/bin/python scripts/run_stage1.py`)
+- `results/stage_comparison.md` — test-case prediction per stage
+- `docs/` — research notes, analysis of the 2022 reference reports, roadmap, per-stage notes (`docs/stages/`)
 - `references/` — reference reports (PDFs are kept locally and not committed)
