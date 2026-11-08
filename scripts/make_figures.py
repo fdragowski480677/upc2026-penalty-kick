@@ -29,7 +29,7 @@ plt.rcParams.update({
     "font.family": "serif", "mathtext.fontset": "cm", "font.size": 9, "axes.titlesize": 9, "axes.labelsize": 9,
     "axes.edgecolor": MUTED, "axes.labelcolor": INK2, "xtick.color": INK2, "ytick.color": INK2, "axes.grid": True,
     "grid.color": GRID, "grid.linewidth": 0.6, "axes.spines.top": False, "axes.spines.right": False,
-    "lines.linewidth": 1.1, "legend.frameon": False, "legend.fontsize": 8, "savefig.bbox": "tight", "figure.dpi": 150,
+    "lines.linewidth": 1.1, "axes.axisbelow": True, "legend.frameon": False, "legend.fontsize": 8, "savefig.bbox": "tight", "figure.dpi": 150,
 })
 
 
@@ -172,7 +172,7 @@ def fig_setup():
     w_axis = np.array([0.25, -0.10, -0.96]); w_axis /= np.linalg.norm(w_axis)        # sidespin, axis mostly −z (test case)
     fl = np.cross(w_axis, vr); fl /= np.linalg.norm(fl)
     _arrow3d(ax, vr * 1.05, vr * 1.2, INK, "$\\vec v_r$")
-    _arrow3d(ax, -vr * 1.0, -vr * 1.1, C["orange"], "$\\vec F_D$", off=1.25)
+    _arrow3d(ax, -vr * 1.0, -vr * 1.1, C["orange"], "$\\vec F_D$", off=1.55)
     _arrow3d(ax, fl * 1.0, fl * 1.2, C["green"], "$\\vec F_L$\n(Magnus lift)", fs=8, off=1.3)
     _arrow3d(ax, (0, 0, -1.0), np.array([0, 0, -0.9]), C["blue"], "$m\\vec g$", off=1.25)
     # wind: three parallel streamlines next to the ball (an air flow, not a force on a point), labelled in words
@@ -457,11 +457,11 @@ def fig_trajectories_3d(noise="rounding"):
         for (lab, tr), (col, ls), mk in zip(stages, STAGE, ("o", "s", "^")):
             ax.plot(tr[1], tr[2], color=col, ls=ls, lw=1.2, zorder=4)
             if not full:
-                ax.plot(tr[1, -1], tr[2, -1], mk, ms=7, mfc=col, mec="white", mew=0.8, zorder=6)
+                ax.plot(tr[1, -1], tr[2, -1], mk, ms=7, mfc=col, mew=0, zorder=6)
         for (lab, col, _, rep), mk in zip(bayes, ("D", "P", "*")):
             ax.plot(rep[1], rep[2], color=col, lw=1.5, ls=(0, (1, 1)), zorder=5)
             if not full:
-                ax.plot(rep[1, -1], rep[2, -1], mk, ms=9 if mk == "*" else 7, mfc=col, mec="white", mew=0.8, zorder=7)
+                ax.plot(rep[1, -1], rep[2, -1], mk, ms=9 if mk == "*" else 7, mfc=col, mew=0, zorder=7)
         if full:
             ax.plot(pts[:, 1], pts[:, 2], ".", ms=6, color=INK, zorder=9)
             ax.set_xlim(-4.1, 4.1); ax.set_ylim(-0.1, 2.85)
@@ -477,9 +477,9 @@ def fig_trajectories_3d(noise="rounding"):
             ax.set_title("(c) zoom on the entry points (S1–S6: stages)", loc="left")
         _kicker_axis(ax)
         ax.set_aspect("equal"); ax.set_xlabel("$y$ (m)   ($\\leftarrow$ kicker's left)"); ax.set_ylabel("$z$ (m)")
-    handles = [Line2D([], [], color=col, ls=ls, lw=1.3, marker=mk, mfc=col, mec="white", ms=6, label=l)
+    handles = [Line2D([], [], color=col, ls=ls, lw=1.3, marker=mk, mfc=col, mew=0, ms=6, label=l)
                for (l, _), (col, ls), mk in zip(stages, STAGE, ("o", "s", "^"))]
-    handles += [Line2D([], [], color=col, lw=1.4, ls=(0, (1, 1)), marker=mk, mfc=col, mec="white", ms=7, label=lab)
+    handles += [Line2D([], [], color=col, lw=1.4, ls=(0, (1, 1)), marker=mk, mfc=col, mew=0, ms=7, label=lab)
                 for (lab, col, _, _), mk in zip(bayes, ("D", "P", "*"))]
     handles += [Line2D([], [], color=POST, lw=0.8, alpha=0.6, label="posterior trajectories and\nentry points (final model)"),
                 matplotlib.patches.Patch(color=SEQ[3], alpha=0.8, label="68 % entry region"),
@@ -631,7 +631,8 @@ def fig_goal_probability(noise="rounding"):
     zb, pb = np.array([r["z"] for r in bar]), np.array([r["p_goal"] for r in bar])
     fy = lambda y: np.interp(np.abs(y), yp, pp, left=1.0, right=0.0)
     fz = lambda z: np.interp(z, zb, pb, left=1.0, right=0.0)
-    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("rb", [C["red"], "#f3a9a0", "#f4f3ef", "#9ec5f4", "#2a6fc4"])
+    # visible spectrum, red (P = 0, no goal) -> orange -> yellow -> green -> blue (P = 1, goal), as requested by the team
+    cmap = matplotlib.colors.ListedColormap(matplotlib.colormaps["turbo"](np.linspace(0.93, 0.10, 256)), name="spectrum")
     fig = plt.figure(figsize=(7.2, 7.6))
     gs = fig.add_gridspec(2, 2, height_ratios=[1.05, 1], hspace=0.62, wspace=0.28)
     a1, a1z = fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1])
@@ -704,7 +705,7 @@ def fig_goal_probability(noise="rounding"):
     for i, (lab, fr, pg) in enumerate(cases):
         bottom = 0.0
         for c, col in cats:
-            a3.bar(i, 100 * fr[c], bottom=bottom, color=col, width=0.62, edgecolor="white", lw=0.6)
+            a3.bar(i, 100 * fr[c], bottom=bottom, color=col, width=0.62, edgecolor="none", lw=0)
             bottom += 100 * fr[c]
         a3.annotate(f"$P$(goal)\n{100 * pg:.1f} %", (i, bottom), xytext=(0, 6), textcoords="offset points",
                     ha="center", va="bottom", fontsize=7, color=INK)
@@ -760,7 +761,7 @@ def fig_coverage():
         if lab in sty:
             col, mk = sty[lab]
             a2.scatter([t["true_yz"][0] for t in tr], [t["mode_yz"][0] for t in tr], s=16, marker=mk, facecolor=col,
-                       edgecolor="white", linewidth=0.5, alpha=0.85, zorder=3, label=lab.replace("final, ", ""))
+                       edgecolor="none", linewidth=0, alpha=0.85, zorder=3, label=lab.replace("final, ", ""))
     a2.set_xlim(*lim); a2.set_ylim(*lim); a2.set_aspect("equal")
     a2.set_xlabel("true lateral entry $y$ (m)"); a2.set_ylabel("most probable $y$ (m)")
     a2.set_title("(b) recovered entry points", loc="left"); a2.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2, columnspacing=0.8)
