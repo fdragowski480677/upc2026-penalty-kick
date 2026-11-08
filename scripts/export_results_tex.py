@@ -66,6 +66,20 @@ def cov_macros(m, pre, c):
     m[f"{pre}n"] = str(c["n_trials"])
 
 
+def merged_coverage(noise, prior):
+    """Merge all coverage batches of one spin prior (files coverage_<noise>_<prior>[_tag].json), checking for repeated trials."""
+    rows = []
+    for f in sorted((ROOT / "results" / "final").glob(f"coverage_{noise}_{prior}*.json")):
+        rows += json.load(open(f))["trials"]
+    if not rows:
+        return None
+    ids = [r["trial"] for r in rows]
+    assert len(ids) == len(set(ids)), f"repeated coverage trials in {noise}/{prior}"
+    n = len(rows)
+    return {"n_trials": n, "coverage68": sum(r["in68"] for r in rows) / n, "coverage95": sum(r["in95"] for r in rows) / n,
+            "trials": rows}
+
+
 SENS_LABELS = {
     "spin_prior_loguniform_1_10": "spin prior log-uniform 1--10 rev/s",
     "spin_drag_off": "no spin-dependent drag ($k_s=0$)",
@@ -208,7 +222,12 @@ def main():
                 goal_macros(m, pre, json.load(open(g)))
         c = ROOT / "results" / "final" / f"coverage_{noise}.json"
         if c.exists():
-            cov_macros(m, f"cov{key}", json.load(open(c)))
+            cov_macros(m, f"cov{key}", json.load(open(c)))                 # log-normal spin prior (final model)
+        kb = merged_coverage(noise, "kick")                                   # kick prior: all batches merged
+        if kb:
+            cov_macros(m, f"cov{key}K", kb)
+        for t in ("sixtyeight", "ninetyfive", "n"):
+            m.setdefault(f"cov{key}K{t}", "\\TBD{running}")
         # Stage 5 model = kick-mechanics prior + frame impacts, no wind (sensitivity chain final_kick_no_wind, Kray C_L curve)
         if final[noise].exists():
             entry_macros(m, f"sfiveE{key}", json.load(open(final[noise]))["sensitivity"]["final_kick_no_wind"]["entry"])

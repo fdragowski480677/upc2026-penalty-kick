@@ -516,7 +516,8 @@ def fig_example_3d():
 
 FIGURES = {"setup": fig_setup, "drag_curves": fig_drag_curves, "lift_curves": fig_lift_curves, "cor_and_kick": fig_cor_and_kick,
            "stage_trajectories": fig_stage_trajectories, "profile_likelihood": fig_profile_likelihood, "trajectories_3d": fig_trajectories_3d,
-           "goal_face_rounding": fig_goal_face, "goal_probability": lambda: fig_goal_probability(), "example_in_off_post": fig_example_3d}
+           "goal_face_rounding": fig_goal_face, "goal_probability": lambda: fig_goal_probability(),
+           "coverage": lambda: fig_coverage(), "sensitivity": lambda: fig_sensitivity(), "example_in_off_post": fig_example_3d}
 
 
 def fig_goal_probability(noise="rounding"):
@@ -588,6 +589,87 @@ def fig_goal_probability(noise="rounding"):
     a3.set_ylabel("share of posterior shots (%)"); a3.set_title("(c) shots that are not clean goals", loc="left")
     a3.legend(handles=[matplotlib.patches.Patch(color=col, label=c) for c, col in cats], fontsize=6.5, loc="upper left")
     save(fig, "goal_probability")
+
+
+def _coverage_sets():
+    """All coverage test sets: (label, list of trial dicts)."""
+    import json
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from export_results_tex import merged_coverage
+    out = []
+    for lab, f in (("Stage 4, rounding", "stage4/coverage_rounding.json"), ("Stage 4, tracking", "stage4/coverage_tracking.json"),
+                   ("final, log-normal, rounding", "final/coverage_rounding.json"),
+                   ("final, log-normal, tracking", "final/coverage_tracking.json")):
+        p = ROOT / "results" / f
+        if p.exists():
+            out.append((lab, json.load(open(p))["trials"]))
+    for nz in ("rounding", "tracking"):
+        mc = merged_coverage(nz, "kick")
+        if mc:
+            out.append((f"final, kick, {nz}", mc["trials"]))
+    return out
+
+
+def fig_coverage():
+    """(a) Coverage of the 68 % / 95 % credible regions for every test set, with binomial 1-sigma error bars;
+    (b) true versus most probable lateral entry point of every trial."""
+    sets = _coverage_sets()
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.2, 3.4), gridspec_kw={"width_ratios": [1.25, 1]})
+    for j, (q, key, col) in enumerate(((0.68, "in68", C["blue"]), (0.95, "in95", C["orange"]))):
+        for i, (lab, tr) in enumerate(sets):
+            n = len(tr); c = sum(t[key] for t in tr) / n; se = np.sqrt(q * (1 - q) / n)
+            a1.errorbar(100 * c, i + (0.12 if j else -0.12), xerr=100 * se, fmt="o", ms=5, color=col, capsize=2, lw=1,
+                        label=(f"{int(q * 100)} % region" if i == 0 else None))
+        a1.axvline(100 * q, color=col, lw=0.9, ls="--")
+    a1.set_yticks(range(len(sets))); a1.set_yticklabels([f"{l} ($n={len(t)}$)" for l, t in sets], fontsize=7)
+    a1.invert_yaxis(); a1.set_xlim(30, 105); a1.set_xlabel("coverage (%): truth inside the stated region")
+    a1.set_title("(a) calibration of the credible regions", loc="left")
+    a1.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=2, fontsize=7)
+    for lab, tr in sets:
+        if lab.startswith("final"):
+            col = {"final, log-normal, rounding": C["blue"], "final, log-normal, tracking": C["aqua"],
+                   "final, kick, rounding": C["red"], "final, kick, tracking": C["violet"]}[lab]
+            a2.plot([t["true_yz"][0] for t in tr], [t["mode_yz"][0] for t in tr], ".", ms=5, color=col, label=lab.replace("final, ", ""))
+    lim = (1.0, 5.0)
+    a2.plot(lim, lim, color=INK2, lw=0.8); a2.set_xlim(*lim); a2.set_ylim(*lim); a2.set_aspect("equal")
+    a2.set_xlabel("true lateral entry $y$ (m)"); a2.set_ylabel("most probable $y$ (m)")
+    a2.set_title("(b) recovered entry points", loc="left"); a2.legend(fontsize=6.5, loc="upper left")
+    fig.tight_layout(w_pad=1.5)
+    save(fig, "coverage")
+
+
+def fig_sensitivity():
+    """Tornado chart: shift of the median entry point for each one-at-a-time change (main case), against the 68 % half-width."""
+    import json
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from export_results_tex import SENS_LABELS, _entry_of_npz, _sens_rows
+    rows = []
+    d4 = json.load(open(ROOT / "results" / "stage4" / "summary_rounding.json"))
+    b4 = d4["nominal"]["kray2014_re462"]["entry"]
+    rows += [("S4", *r) for r in _sens_rows(b4, [(SENS_LABELS[k], v["entry"]) for k, v in d4["sensitivity"].items()])]
+    rows += [("S4", *r) for r in _sens_rows(b4, [(SENS_LABELS[k], v["entry"]) for k, v in d4["nominal"].items() if k != "kray2014_re462"])]
+    df = json.load(open(ROOT / "results" / "final" / "summary_final_rounding.json"))
+    bf = _entry_of_npz(ROOT / "results" / "raw" / "stage4_rounding_final_kick_kray2014_re462.npz")
+    rows += [("S6", *r) for r in _sens_rows(bf, [(SENS_LABELS[k], v["entry"]) for k, v in df["sensitivity"].items()])]
+    lg = _entry_of_npz(ROOT / "results" / "raw" / "stage4_rounding_final_lognormal_kray2014_re462.npz")
+    rows += [("S6", *r) for r in _sens_rows(bf, [("log-normal spin prior instead of kick", lg)])]
+    rows.sort(key=lambda r: max(abs(r[2]), abs(r[3])))
+    fig, ax = plt.subplots(figsize=(7.2, 4.6))
+    hw = 50 * (b4["y"]["p84"] - b4["y"]["p16"])
+    ax.axvspan(-hw, hw, color=GRID, alpha=0.6, lw=0, label=f"68 % half-width of $y$ ({hw:.0f} cm)")
+    for i, (st, lab, dy, dz, *_ ) in enumerate(rows):
+        ax.barh(i + 0.18, dy, height=0.34, color=C["blue"], label="$\\Delta y$ (lateral)" if i == 0 else None)
+        ax.barh(i - 0.18, dz, height=0.34, color=C["orange"], label="$\\Delta z$ (height)" if i == 0 else None)
+    ax.set_yticks(range(len(rows)))
+    ax.set_yticklabels([f"{lab.replace(chr(92) + 'mathcal U', chr(92) + 'mathrm{U}').replace('--', '–')}  [{'Stage 4' if st == 'S4' else 'final'}]"
+                        for st, lab, *_ in rows], fontsize=7)
+    ax.axvline(0, color=INK2, lw=0.8); ax.set_xlabel("shift of the median entry point (cm), main case")
+    ax.legend(loc="lower right", fontsize=7.5)
+    ax.set_title("Sensitivity of the prediction to each modelling choice", loc="left")
+    fig.tight_layout()
+    save(fig, "sensitivity")
 
 
 CHAINS = ""   # chain-file prefix: "" = Stage 4 posterior, "final_<spin prior>_" = final unified model (set in main)
