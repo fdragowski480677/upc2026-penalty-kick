@@ -30,6 +30,10 @@ LITERATURE_CD = {
     "oggiano2010_terrapass": (0.20,  "Oggiano & Saetran 2010, Fig. 2, Adidas Terrapass [notes, extrap]"),
     "oggiano2010_t90":       (0.19,  "Oggiano & Saetran 2010, Fig. 2, Nike T90 Omni [notes, extrap]"),
     "oggiano2010_puma":      (0.21,  "Oggiano & Saetran 2010, Fig. 2, Puma v1.08 [notes, extrap]"),
+    "goff2018_telstar18":    (0.20,  "Goff, Hong & Asai 2018, Figs 5-6, Telstar 18 (6 panels), 28-35 m/s [verified]"),
+    "goff2018_brazuca":      (0.195, "Goff, Hong & Asai 2018, Figs 5-6, Brazuca (6 panels), 28-35 m/s [verified]"),
+    "hong2014_teamgeist2":   (0.22,  "Hong & Asai 2014, Fig. 3d, Teamgeist 2, Re 4.5-5e5 [verified]"),
+    "hong2014_jabulani":     (0.155, "Hong & Asai 2014, Fig. 3c, Jabulani, Re 4.5-5e5 [verified]"),
 }
 
 

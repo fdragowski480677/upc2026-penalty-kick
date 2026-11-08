@@ -37,6 +37,8 @@ class AeroParams:
     lift_model: object = field(default_factory=TabulatedCL)         # anything with .cl(S, re, speed)
     spin_drag_slope: float = SPIN_DRAG_SLOPES["asai2007"]           # k_s in C_D = C_D0 + k_s·S
     spin_decay_k: float = 0.0                                       # k in dω/dt = −k ω |v| / R
+    # --- Stage 4 nuisance: steady seam/orientation side force, coefficients along e1 = ẑ×v̂ and e2 = v̂×e1 ---
+    seam_coeffs: tuple = (0.0, 0.0)
 
 
 def reynolds(speed, params):
@@ -91,3 +93,22 @@ def magnus(t, r, v, params, path=0.0):
     cl = params.lift_model.cl(s, reynolds(speed, params), speed)
     direction = np.cross(w_perp, v) / (float(np.sqrt(w_perp @ w_perp)) * speed)
     return k * cl * speed**2 * direction
+
+
+def seam_force(t, r, v, params, path=0.0):
+    """Steady seam/orientation side force [lit: Barber 2009; Kray 2014]: a = (ρA/2m) v² (c1 ê1 + c2 ê2).
+
+    ê1 = ẑ×v̂/|ẑ×v̂| (horizontal ⊥ v) and ê2 = v̂×ê1. At ≥ 3 rev/s, spin averages the orientation-dependent part, so only a
+    small steady residual remains (|C_S| ≲ 0.03–0.05). This is a Stage 4 uncertainty term; it is zero by default.
+    """
+    c1, c2 = params.seam_coeffs
+    if c1 == 0.0 and c2 == 0.0:
+        return np.zeros(3)
+    speed = float(np.sqrt(v @ v))
+    vh = v / speed
+    e1 = np.cross([0.0, 0.0, 1.0], vh)
+    e1 /= np.linalg.norm(e1)
+    e2 = np.cross(vh, e1)
+    b, air = params.ball, params.air
+    k = 0.5 * air.density * np.pi * b.radius**2 / b.mass
+    return k * speed**2 * (c1 * e1 + c2 * e2)
