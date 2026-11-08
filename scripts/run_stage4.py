@@ -134,8 +134,48 @@ def replot(noise):
     figure(pooled, summarise(pooled), ROOT / "results" / "figures" / f"stage4_entry_posterior_{noise}.png", noise)
 
 
+SPIN_PRIORS = ("lognormal", "kick")
+
+
+def main_final(a, kw):
+    """Final unified model (Stage 6: wind included). One chain per C_L curve for each spin prior, plus sensitivity cases."""
+    raw = ROOT / "results" / "raw"; raw.mkdir(parents=True, exist_ok=True)
+    out = ROOT / "results" / "final"; out.mkdir(parents=True, exist_ok=True)
+    pr = Priors()                                          # wind_sd = 2.0 m/s
+    base = Settings(LIFT_MODELS["kray2014_re462"])
+    jobs = [(f"final_{sp}_{c}", Settings(LIFT_MODELS[c]), replace(pr, spin_prior=sp), kw, raw, a.noise)
+            for sp in SPIN_PRIORS for c in NOMINAL_CURVES]
+    sens = {"final_kick_no_wind": (base, replace(pr, spin_prior="kick", wind_sd=1e-6)),
+            "final_kick_spin_decay": (replace(base, spin_decay_k=SPIN_DECAY_K["asai2020"]), replace(pr, spin_prior="kick")),
+            "final_kick_rho_uniform": (base, replace(pr, spin_prior="kick", rho_prior="uniform"))}
+    jobs += [(n, st, p, kw, raw, a.noise) for n, (st, p) in sens.items()]
+    print(f"FINAL model, noise {a.noise} (sigma = {NOISE[a.noise] * 1000:.2f} mm); {len(jobs)} chains on {a.procs} processes", flush=True)
+    with Pool(a.procs) as pool:
+        results = {label: (post, conv, st) for label, post, conv, st in pool.imap_unordered(_job, jobs)}
+    report = {"config": {"model": "final (Stage 6, wind)", "noise": a.noise, "sigma_obs_m": NOISE[a.noise], "chains": kw,
+                         "priors": pr.__dict__, "nominal_curves": NOMINAL_CURVES}, "by_spin_prior": {}, "sensitivity": {}}
+    for sp in SPIN_PRIORS:
+        labels = [f"final_{sp}_{c}" for c in NOMINAL_CURVES]
+        pooled = np.concatenate([results[l][0].entries for l in labels])
+        _, rep = entry_report(pooled)
+        rep["spin_rev_s"] = q(np.concatenate([derived(results[l][0], results[l][2])["spin_rev_s"] for l in labels]))
+        wind = np.concatenate([np.hypot(results[l][0].samples[:, 12], results[l][0].samples[:, 13]) for l in labels])
+        rep["wind_speed"] = q(wind)
+        rep["convergence"] = {l: results[l][1] for l in labels}
+        report["by_spin_prior"][sp] = rep
+        print(f"  [{sp}] mode {rep['mode_yz']}  y68 [{rep['y']['p16']:.3f},{rep['y']['p84']:.3f}]  z68 [{rep['z']['p16']:.3f},"
+              f"{rep['z']['p84']:.3f}]  outcomes {rep['p_outcome']}  spin median {rep['spin_rev_s']['median']:.2f}")
+    for n in sens:
+        post, conv, st = results[n]
+        _, rep = entry_report(post.entries)
+        report["sensitivity"][n] = {"convergence": conv, "entry": rep}
+        print(f"  {n:26s} mode {rep['mode_yz']}  y68 [{rep['y']['p16']:.2f},{rep['y']['p84']:.2f}]  N/tau {conv['steps_over_tau']:.0f}")
+    (out / f"summary_final_{a.noise}.json").write_text(json.dumps(report, indent=2))
+
+
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--model", choices=("stage4", "final"), default="stage4")
     ap.add_argument("--quick", action="store_true", help="short chains for a smoke test")
     ap.add_argument("--noise", choices=sorted(NOISE), default="tracking")
     ap.add_argument("--procs", type=int, default=11)
@@ -148,6 +188,8 @@ def main():
         return
     kw = (dict(nwalkers=64, nsteps=1200, burn=400, thin=10) if a.quick
           else dict(nwalkers=128, nsteps=a.nsteps, burn=a.burn, thin=max(10, a.nsteps // 300)))
+    if a.model == "final":
+        return main_final(a, kw)
     raw = ROOT / "results" / "raw"; raw.mkdir(parents=True, exist_ok=True)
     out = ROOT / "results" / "stage4"; out.mkdir(parents=True, exist_ok=True)
     figs = ROOT / "results" / "figures"; figs.mkdir(parents=True, exist_ok=True)

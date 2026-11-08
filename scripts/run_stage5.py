@@ -1,6 +1,10 @@
 """Stage 5: decide goal or no goal for posterior samples that reach the frame, and check Stage 4 convergence by split halves.
 
 Usage:  PYTHONPATH=src .venv/bin/python scripts/run_stage5.py --noise tracking [--max-contacts 3000] [--procs 11]
+        PYTHONPATH=src .venv/bin/python scripts/run_stage5.py --model final --spin-prior kick --noise rounding
+        PYTHONPATH=src .venv/bin/python scripts/run_stage5.py --model final --spin-prior kick --noise rounding --chain no_wind
+  (--model final reads the unified-model chains results/raw/stage4_<noise>_final_<spin prior>_<curve>.npz, wind included,
+   and writes results/final/goal_probability_<noise>_<spin prior>.json)
 
 For every pooled Stage 4 posterior sample (results/raw/stage4_<noise>_<curve>.npz):
 * centre crossing far inside the frame (distance to frame ≥ R + 2 r_p + 0.05 m) → clean goal;
@@ -42,8 +46,9 @@ def sample_params(th, curve):
     ph = physics(th[None, :])
     ball = Ball(mass=float(ph["mass"][0]), radius=float(ph["radius"][0]))
     air = Air(density=float(th[6]), kinematic_viscosity=float(ph["nu"][0]))
+    wind = np.array([th[12], th[13], 0.0]) if len(th) >= 14 else np.zeros(3)
     return v0, ball, replace(AeroParams(), ball=ball, air=air, drag_model=ConstantCD(float(th[5])), spin=spin,
-                             lift_model=LIFT_MODELS[curve], seam_coeffs=(float(th[10]), float(th[11])))
+                             lift_model=LIFT_MODELS[curve], seam_coeffs=(float(th[10]), float(th[11])), wind=wind)
 
 
 def _job(args):
@@ -69,16 +74,22 @@ def main():
     ap.add_argument("--noise", default="tracking")
     ap.add_argument("--max-contacts", type=int, default=3000)
     ap.add_argument("--procs", type=int, default=11)
+    ap.add_argument("--model", choices=("stage4", "final"), default="stage4")
+    ap.add_argument("--spin-prior", choices=("lognormal", "kick"), default="kick")
+    ap.add_argument("--chain", default=None,
+                    help="with --model final: one sensitivity chain instead of the four pooled C_L curves, e.g. no_wind (= Stage 5)")
     a = ap.parse_args()
+    prefix = f"final_{a.spin_prior}_" if a.model == "final" else ""
     rng = np.random.default_rng(42)
     g, rp = Goal(), 0.06
     counts = {CLEAN_GOAL: 0, MISS: 0}
     cand, split = [], {}
     n_total = 0
-    for c in CURVES:
-        d = np.load(ROOT / "results" / "raw" / f"stage4_{a.noise}_{c}.npz")
+    files = [(a.chain, "kray2014_re462")] if a.chain else [(c, c) for c in CURVES]   # sensitivity chains use the Kray curve
+    for f, c in files:
+        d = np.load(ROOT / "results" / "raw" / f"stage4_{a.noise}_{prefix}{f}.npz")
         th, en = d["samples"], d["entries"]
-        split[c] = split_half(en)
+        split[f] = split_half(en)
         for i in range(len(th)):
             if not np.all(np.isfinite(en[i])):
                 counts[MISS] += 1; n_total += 1; continue
@@ -101,13 +112,16 @@ def main():
     p_cand = n_cand / n_total
     p_goal = counts[CLEAN_GOAL] / n_total + p_cand * (frac.get(CLEAN_GOAL, 0) + frac.get(GOAL_OFF_FRAME, 0))
     se = np.sqrt(p_goal * (1 - p_goal) / max(len(outs), 1)) * p_cand
-    report = {"noise": a.noise, "n_samples": n_total, "p_far_clean_goal": counts[CLEAN_GOAL] / n_total,
+    report = {"model": a.model, "spin_prior": a.spin_prior if a.model == "final" else "lognormal", "noise": a.noise, "n_samples": n_total, "p_far_clean_goal": counts[CLEAN_GOAL] / n_total,
               "p_far_miss": counts[MISS] / n_total, "p_near_frame": p_cand, "n_resolved": len(outs),
               "near_frame_outcomes": frac, "p_goal": p_goal, "p_goal_mc_se": float(se),
               "impact_priors": {"e_x": "U(0, 0.2)", "mu": "U(0.2, 0.8)", "e_n_offset": "N(0, 0.03)"},
               "split_half_quantiles": split}
-    out = ROOT / "results" / "stage5"; out.mkdir(parents=True, exist_ok=True)
-    (out / f"goal_probability_{a.noise}.json").write_text(json.dumps(report, indent=2))
+    out = ROOT / "results" / ("final" if a.model == "final" else "stage5"); out.mkdir(parents=True, exist_ok=True)
+    name = f"goal_probability_{a.noise}_{a.spin_prior}.json" if a.model == "final" else f"goal_probability_{a.noise}.json"
+    if a.chain:
+        name = name.replace(".json", f"_{a.chain}.json")
+    (out / name).write_text(json.dumps(report, indent=2))
     print(json.dumps({k: v for k, v in report.items() if k != "split_half_quantiles"}, indent=2))
     for c, v in split.items():
         print(f"  split-half {c:22s} y16/50/84 {v['y_first']} vs {v['y_second']}   z {v['z_first']} vs {v['z_second']}")

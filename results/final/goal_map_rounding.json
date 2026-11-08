@@ -1,0 +1,659 @@
+{
+ "noise": "rounding",
+ "draws_per_point": 24,
+ "posterior": "final model, kick prior",
+ "scans": {
+  "post": [
+   {
+    "y": 3.3,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.32,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.34,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.36,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.38,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.4,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.42,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.44,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.46,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.48,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.5,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.52,
+    "z": 1.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.54,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 1.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.56,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 1.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 3.58,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.9166666666666666,
+    "miss off the frame": 0.08333333333333333,
+    "miss": 0.0,
+    "p_goal": 0.9166666666666666
+   },
+   {
+    "y": 3.6,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.62,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.64,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.66,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.68,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.7,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.72,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.74,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.76,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.78,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.8,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.82,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.84,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.86,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.88,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.9166666666666666,
+    "miss": 0.08333333333333333,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.9,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.92,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.94,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.96,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 3.98,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 4.0,
+    "z": 1.2,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   }
+  ],
+  "crossbar": [
+   {
+    "y": 1.5,
+    "z": 2.1,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.12,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.14,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.16,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.18,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.2,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.22,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.24,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.26,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.28,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.3,
+    "clean goal": 1.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.32,
+    "clean goal": 0.9583333333333334,
+    "goal off the frame": 0.041666666666666664,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.34,
+    "clean goal": 0.0,
+    "goal off the frame": 1.0,
+    "miss off the frame": 0.0,
+    "miss": 0.0,
+    "p_goal": 1.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.36,
+    "clean goal": 0.0,
+    "goal off the frame": 0.9166666666666666,
+    "miss off the frame": 0.08333333333333333,
+    "miss": 0.0,
+    "p_goal": 0.9166666666666666
+   },
+   {
+    "y": 1.5,
+    "z": 2.38,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.4,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.42,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.44,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.46,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.48,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.5,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.52,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.54,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.56,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.58,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.6,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.62,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.64,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.66,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 1.0,
+    "miss": 0.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.68,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.7,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.72,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.74,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.76,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.78,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   },
+   {
+    "y": 1.5,
+    "z": 2.8,
+    "clean goal": 0.0,
+    "goal off the frame": 0.0,
+    "miss off the frame": 0.0,
+    "miss": 1.0,
+    "p_goal": 0.0
+   }
+  ]
+ }
+}
