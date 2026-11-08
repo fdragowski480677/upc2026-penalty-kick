@@ -119,7 +119,10 @@ def fig_cor_and_kick():
     a3.fill_between(kp.w, p, color=C["green"], alpha=0.15, lw=0)
     a3.plot(kp.w, p, color=C["green"])
     a3.axvline(med, color=INK2, lw=0.9, ls="--")
-    a3.text(med + 0.2, p.max() * 0.95, f"median {med:.1f} rev/s", fontsize=7, color=INK2)
+    a3.annotate(f"median\n{med:.1f} rev/s", (med, p.max() * 0.55), xytext=(6.6, p.max() * 0.62), fontsize=7.5, color=INK,
+                ha="center", va="center", arrowprops=dict(arrowstyle="->", color=INK2, lw=0.8),
+                bbox=dict(boxstyle="round,pad=0.25", fc="white", ec=GRID))
+    a3.set_ylim(0, p.max() * 1.08)
     a3.set_xlim(0, 10); a3.set_yticks([]); a3.set_xlabel("spin $\\Omega$ (rev/s)"); a3.set_ylabel("probability density")
     a3.set_title("(c) spin prior at 32.5 m/s", loc="left")
     fig.tight_layout(w_pad=1.2)
@@ -185,7 +188,7 @@ def fig_setup():
     ax.plot(*ring, color=C["red"], lw=1.6)
     tip, prev = ring[:, -1], ring[:, -4]
     ax.quiver(*prev, *(tip - prev) * 1.6, color=C["red"], lw=1.6, arrow_length_ratio=0.9)
-    ax.text(*(centre + 0.65 * e1 + np.array([0, 0, 0.25])), "spin $\\vec\\omega$", color=C["red"], fontsize=10)
+    ax.text(*(centre + np.array([0, 0, 0.75])), "spin $\\vec\\omega$", color=C["red"], fontsize=10, ha="center", va="bottom")
     ax.set_xlim(-2.3, 2.3); ax.set_ylim(-2.3, 2.3); ax.set_zlim(-2.3, 2.3); ax.set_box_aspect((1, 1, 1), zoom=1.2)
     ax.view_init(elev=24, azim=-135); _clean3d(ax, ticks=False)
     ax.set_title("(b) forces on the spinning ball (schematic)", loc="left", fontsize=8)
@@ -366,10 +369,10 @@ def _posterior_trajectories(noise="rounding", n=150, seed=3, prefix=None, files=
     return trajs
 
 
-def _pooled_entries(noise="rounding", max_n=30000, seed=0):
-    from penalty.bayes import TWO_PI  # noqa: F401
+def _pooled_entries(noise="rounding", max_n=30000, seed=0, prefix=None):
+    prefix = CHAINS if prefix is None else prefix
     curves = ["kray2014_re462", "kray2014_re_interp", "asai2007_re455", "asai2007_re_interp"]
-    e = np.concatenate([np.load(ROOT / "results" / "raw" / f"stage4_{noise}_{CHAINS}{c}.npz")["entries"] for c in curves])
+    e = np.concatenate([np.load(ROOT / "results" / "raw" / f"stage4_{noise}_{prefix}{c}.npz")["entries"] for c in curves])
     e = e[np.all(np.isfinite(e), axis=1)][:, 1:3]
     rng = np.random.default_rng(seed)
     return e[rng.choice(len(e), min(max_n, len(e)), replace=False)]
@@ -385,134 +388,229 @@ def _hpd(entries, grid_y=(-0.5, 4.2), grid_z=(0.6, 3.0), n=220):
     return Y, Z, D, {q: at[int(q * len(at)) - 1] for q in (0.68, 0.95)}, (Y.ravel()[D.argmax()], Z.ravel()[D.argmax()])
 
 
+def _goal_face_frame(ax, lw_post=0.12):
+    """Posts and crossbar seen from the penalty mark (12 cm square profiles, inner edges at |y| = 3.66 m, z = 2.44 m)."""
+    a, h = 3.66, 2.44
+    for y0 in (a, -a - lw_post):
+        ax.add_patch(matplotlib.patches.Rectangle((y0, 0), lw_post, h + lw_post, fc="white", ec=INK2, lw=1.0, zorder=8))
+    ax.add_patch(matplotlib.patches.Rectangle((-a - lw_post, h), 2 * a + 2 * lw_post, lw_post, fc="white", ec=INK2, lw=1.0, zorder=8))
+
+
+def _kicker_axis(ax):
+    """Horizontal axis as seen by the kicker: +y points to the kicker's LEFT, so the y axis is drawn right-to-left."""
+    if not ax.xaxis_inverted():
+        ax.invert_xaxis()
+
+
 def fig_trajectories_3d(noise="rounding"):
-    """3-D trajectories: Stage 1-3 best fits, a posterior 'spaghetti', and the 68/95 % entry regions drawn on the goal plane."""
+    """(a) 3-D trajectories of all six stages with a posterior 'spaghetti' and the 68/95 % entry regions on the goal plane;
+    (b) the goal as seen by the kicker; (c) zoom on the entry region where the stages separate."""
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     from penalty.constants import TEST_CASE
     stages = _stage_fits()
     post = _posterior_trajectories(noise)
     bayes = _bayes_stage_paths(noise)
-    Y, Z, D, lev, mode = _hpd(_pooled_entries(noise))
+    e = _pooled_entries(noise)
+    Y, Z, D, lev, mode = _hpd(e)
     regions = {}
     cs = plt.figure().add_subplot().contour(Y, Z, D, levels=[lev[0.95], lev[0.68]])
     for q, segs in zip((0.95, 0.68), cs.allsegs):
         regions[q] = max(segs, key=len)
     plt.close("all")
     pts = np.array([[0, 0, 0.11]] + [o.position for o in TEST_CASE])
-    fig = plt.figure(figsize=(7.2, 3.3))
-    views = ((22, -132, "oblique view from behind the kicker"), (3, 180, "kicker's-eye view (towards the goal)"))
-    for i, (elev, azim, title) in enumerate(views):
-        ax = fig.add_subplot(1, 2, i + 1, projection="3d")
-        if i == 1:
-            ax.set_proj_type("persp", focal_length=0.45)
-        _frame3d(ax)
-        a, X = 3.66, 11.0
-        ax.plot([0, X], [0, 0], [0, 0], color=GRID, lw=0.8)
-        for tr in post:
-            ax.plot(*tr, color=POST, lw=0.35, alpha=0.10)
-        for q, col, alpha in ((0.95, SEQ[2], 0.30), (0.68, SEQ[5], 0.45)):
-            v = regions[q]
-            poly = Poly3DCollection([list(zip(np.full(len(v), X), v[:, 0], v[:, 1]))], facecolor=col, edgecolor=col, alpha=alpha, lw=0.8)
-            ax.add_collection3d(poly)
-        for (lab, tr), (col, ls) in zip(stages, STAGE):
-            ax.plot(tr[0], tr[1], np.zeros_like(tr[2]), color=GRID, lw=0.8)          # ground shadow (depth cue)
-            ax.plot(*tr, color=col, ls=ls, lw=1.1)
-        for lab, col, _, rep in bayes:
-            ax.plot(*rep, color=col, lw=1.4, ls=(0, (1, 1)))
-        ax.plot(*pts.T, ".", ms=7, color=INK, zorder=20)
-        ax.set_xlim(0, 11.5); ax.set_ylim(-4, 4); ax.set_zlim(0, 3)
-        ax.set_box_aspect((11.5, 8, 3), zoom=0.98 if i == 0 else 1.6)
-        ax.view_init(elev=elev, azim=azim)
-        ax.set_xlabel("$x$ (m)", labelpad=-6); ax.set_ylabel("$y$ (m)", labelpad=-6); ax.set_zlabel("$z$ (m)", labelpad=-8)
-        ax.set_xticks([0, 5.5, 11]); ax.set_yticks([-3.66, 0, 3.66]); ax.set_zticks([0, 2.44]); ax.tick_params(labelsize=6, pad=-2)
-        _clean3d(ax)
-        ax.set_title(title, fontsize=8, loc="left")
-        if i == 1:
-            ax.set_axis_off()
-            ax.plot([X, X], [-a - 1.5, a + 1.5], [0, 0], color=MUTED, lw=0.8)
-            ax.text(X, a, -0.35, "$y=+3.66$ m", fontsize=6, color=INK2, ha="center")
-            ax.text(X, -a, -0.35, "$y=-3.66$ m", fontsize=6, color=INK2, ha="center")
-    handles = [Line2D([], [], color=c, ls=ls, lw=1.3, label=l) for (l, _), (c, ls) in zip(stages, STAGE)]
-    handles += [Line2D([], [], color=col, lw=1.4, ls=(0, (1, 1)), label=lab) for lab, col, _, _ in bayes]
-    handles += [Line2D([], [], color=POST, lw=0.8, alpha=0.6, label="posterior trajectories (final model)"),
-                matplotlib.patches.Patch(color=SEQ[5], alpha=0.6, label="68 % entry region"),
-                matplotlib.patches.Patch(color=SEQ[2], alpha=0.5, label="95 % entry region"),
+    fig = plt.figure(figsize=(7.2, 5.9))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1, 1.35], width_ratios=[1.25, 1], hspace=0.02, wspace=0.12)
+    # ---- (a) oblique 3-D view ----
+    ax = fig.add_subplot(gs[0, 0], projection="3d")
+    _frame3d(ax)
+    a, X = 3.66, 11.0
+    ax.plot([0, X], [0, 0], [0, 0], color=GRID, lw=0.8)
+    for tr in post:
+        ax.plot(*tr, color=POST, lw=0.35, alpha=0.10)
+    for q, col, alpha in ((0.95, SEQ[2], 0.30), (0.68, SEQ[5], 0.45)):
+        v = regions[q]
+        ax.add_collection3d(Poly3DCollection([list(zip(np.full(len(v), X), v[:, 0], v[:, 1]))], facecolor=col, edgecolor=col,
+                                             alpha=alpha, lw=0.8))
+    for (lab, tr), (col, ls) in zip(stages, STAGE):
+        ax.plot(tr[0], tr[1], np.zeros_like(tr[2]), color=GRID, lw=0.8)              # ground shadow (depth cue)
+        ax.plot(*tr, color=col, ls=ls, lw=1.2)
+    for lab, col, _, rep in bayes:
+        ax.plot(*rep, color=col, lw=1.5, ls=(0, (1, 1)))
+    ax.plot(*pts.T, ".", ms=7, color=INK, zorder=20)
+    ax.set_xlim(0, 11.5); ax.set_ylim(-4, 4); ax.set_zlim(0, 3)
+    ax.set_box_aspect((11.5, 8, 3), zoom=1.15); ax.view_init(elev=22, azim=-132)
+    ax.set_xlabel("$x$ (m)", labelpad=-6); ax.set_ylabel("$y$ (m)", labelpad=-6); ax.set_zlabel("$z$ (m)", labelpad=-8)
+    ax.set_xticks([0, 5.5, 11]); ax.set_yticks([-3.66, 0, 3.66]); ax.set_zticks([0, 2.44]); ax.tick_params(labelsize=6, pad=-2)
+    _clean3d(ax); ax.set_title("(a) oblique view from behind the kicker", loc="left", fontsize=9)
+    # ---- (b) the goal as the kicker sees it (view along +x; +y is on the kicker's left), (c) zoom ----
+    b = fig.add_subplot(gs[0, 1]); c = fig.add_subplot(gs[1, 0])
+    zoom = ((2.15, 3.35), (1.60, 2.30))
+    offs = {0: (6, 4), 1: (6, -10), 2: (2, -13), 3: (5, 6), 4: (-14, 5), 5: (-4, 7)}   # direct labels S1..S6 (points)
+    ends = [tr[1:, -1] for _, tr in stages] + [rep[1:, -1] for *_, rep in bayes]
+    for ax, full in ((b, True), (c, False)):
+        _goal_face_frame(ax)
+        ax.axhline(0, color=MUTED, lw=0.8)
+        ax.contourf(Y, Z, D, levels=[lev[0.95], lev[0.68], D.max() * 1.01], colors=[SEQ[1], SEQ[3]], alpha=0.8, zorder=1)
+        ax.contour(Y, Z, D, levels=[lev[0.95], lev[0.68]], colors=[SEQ[3], SEQ[5]], linewidths=0.8, zorder=2)
+        if not full:
+            ax.plot(e[:1500, 0], e[:1500, 1], ".", ms=1.0, color=POST, alpha=0.25, zorder=2, rasterized=True)
+        for (lab, tr), (col, ls), mk in zip(stages, STAGE, ("o", "s", "^")):
+            ax.plot(tr[1], tr[2], color=col, ls=ls, lw=1.2, zorder=4)
+            if not full:
+                ax.plot(tr[1, -1], tr[2, -1], mk, ms=7, mfc=col, mec="white", mew=0.8, zorder=6)
+        for (lab, col, _, rep), mk in zip(bayes, ("D", "P", "*")):
+            ax.plot(rep[1], rep[2], color=col, lw=1.5, ls=(0, (1, 1)), zorder=5)
+            if not full:
+                ax.plot(rep[1, -1], rep[2, -1], mk, ms=9 if mk == "*" else 7, mfc=col, mec="white", mew=0.8, zorder=7)
+        if full:
+            ax.plot(pts[:, 1], pts[:, 2], ".", ms=6, color=INK, zorder=9)
+            ax.set_xlim(-4.1, 4.1); ax.set_ylim(-0.1, 2.85)
+            ax.add_patch(matplotlib.patches.Rectangle((zoom[0][0], zoom[1][0]), np.diff(zoom[0])[0], np.diff(zoom[1])[0],
+                                                      fill=False, ec=INK, lw=0.8, ls="--", zorder=9))
+            ax.text(np.mean(zoom[0]), zoom[1][0] - 0.06, "zoom (c)", ha="center", va="top", fontsize=7, color=INK)
+            ax.set_title("(b) the goal as the kicker sees it", loc="left")
+        else:
+            for k, (yy, zz) in enumerate(ends):
+                ax.annotate(f"S{k + 1}", (yy, zz), xytext=offs[k], textcoords="offset points", fontsize=7.5, color=INK,
+                            zorder=10, bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="none", alpha=0.75))
+            ax.set_xlim(*zoom[0]); ax.set_ylim(*zoom[1])
+            ax.set_title("(c) zoom on the entry points (S1–S6: stages)", loc="left")
+        _kicker_axis(ax)
+        ax.set_aspect("equal"); ax.set_xlabel("$y$ (m)   ($\\leftarrow$ kicker's left)"); ax.set_ylabel("$z$ (m)")
+    handles = [Line2D([], [], color=col, ls=ls, lw=1.3, marker=mk, mfc=col, mec="white", ms=6, label=l)
+               for (l, _), (col, ls), mk in zip(stages, STAGE, ("o", "s", "^"))]
+    handles += [Line2D([], [], color=col, lw=1.4, ls=(0, (1, 1)), marker=mk, mfc=col, mec="white", ms=7, label=lab)
+                for (lab, col, _, _), mk in zip(bayes, ("D", "P", "*"))]
+    handles += [Line2D([], [], color=POST, lw=0.8, alpha=0.6, label="posterior trajectories and\nentry points (final model)"),
+                matplotlib.patches.Patch(color=SEQ[3], alpha=0.8, label="68 % entry region"),
+                matplotlib.patches.Patch(color=SEQ[1], alpha=0.8, label="95 % entry region"),
                 Line2D([], [], marker=".", ls="", color=INK, ms=7, label="given positions")]
-    fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=7, bbox_to_anchor=(0.5, -0.08))
-    fig.subplots_adjust(left=0.0, right=1.0, top=0.95, bottom=0.16, wspace=0.0)
+    lg = fig.add_subplot(gs[1, 1]); lg.axis("off")
+    lg.legend(handles=handles, loc="center left", fontsize=7.5, labelspacing=0.9, handlelength=3.0)
+    fig.subplots_adjust(left=0.02, right=0.99, top=0.96, bottom=0.07)
     save(fig, "trajectories_3d")
 
 
 def fig_goal_face(noise="rounding"):
-    """The goal face: (a) every sampled entry point as a dot; (b) the same points as a density with 68/95 % credible regions."""
-    e = _pooled_entries(noise)
+    """The goal face as the kicker sees it (Stage 4 posterior): (a) every sampled entry point as a dot; (b) the same points as a
+    density with 68/95 % credible regions."""
+    import json
+    e = _pooled_entries(noise, prefix="")          # Stage 4 chains: this figure belongs to the Stage 4 section
     Y, Z, D, lev, mode = _hpd(e, grid_y=(-3.9, 4.1), grid_z=(0.0, 2.9), n=320)
     fig, (a1, a2) = plt.subplots(2, 1, figsize=(6.8, 5.0), sharex=True)
     cmap = matplotlib.colors.LinearSegmentedColormap.from_list("seq", SEQ)
     for ax in (a1, a2):
-        ax.add_patch(matplotlib.patches.Rectangle((3.66, 0), 0.12, 2.56, color=INK2))
-        ax.add_patch(matplotlib.patches.Rectangle((-3.78, 0), 0.12, 2.56, color=INK2))
-        ax.add_patch(matplotlib.patches.Rectangle((-3.78, 2.44), 7.56, 0.12, color=INK2))
+        _goal_face_frame(ax)
         ax.axhline(0, color=MUTED, lw=0.8)
-        ax.set_xlim(-4.0, 4.2); ax.set_ylim(0, 2.9); ax.set_aspect("equal"); ax.set_ylabel("$z$ (m)")
+        ax.set_xlim(-4.2, 4.2); ax.set_ylim(0, 2.9); ax.set_aspect("equal"); ax.set_ylabel("$z$ (m)")
+    _kicker_axis(a1)                               # shared x: inverting once mirrors both panels
     sub = e[np.random.default_rng(1).choice(len(e), 6000, replace=False)]
     a1.plot(sub[:, 0], sub[:, 1], ".", ms=1.2, color=POST, alpha=0.35, rasterized=True)
-    a1.set_title(f"(a) {len(sub)} sampled entry points (ball centre crossing $x=11$ m)", loc="left")
+    a1.set_title(f"(a) {len(sub)} sampled entry points (ball centre crossing $x=11$ m), seen from the penalty mark", loc="left")
     a2.contourf(Y, Z, D, levels=np.linspace(lev[0.95], D.max(), 10), cmap=cmap)
     a2.contour(Y, Z, D, levels=[lev[0.95]], colors=[SEQ[4]], linewidths=1.0)
     a2.contour(Y, Z, D, levels=[lev[0.68]], colors=[INK], linewidths=1.0, linestyles="--")
-    import json   # quote the most probable point of the full pooled posterior (as in the text), not of this plotting subsample
+    # quote the most probable point of the full pooled posterior (as in the text), not of this plotting subsample
     mode = tuple(json.load(open(ROOT / "results" / "stage4" / f"summary_{noise}.json"))["pooled"]["mode_yz"])
     a2.plot(*mode, "+", ms=9, mew=1.4, color=C["red"])
-    a2.annotate(f"most probable entry\n$(y,z)=({mode[0]:.2f}, {mode[1]:.2f})$ m", mode, xytext=(-1.6, 1.0), fontsize=7.5,
+    a2.annotate(f"most probable entry\n$(y,z)=({mode[0]:.2f}, {mode[1]:.2f})$ m", mode, xytext=(0.9, 1.0), fontsize=7.5,
                 color=INK, arrowprops=dict(arrowstyle="-", color=INK2, lw=0.7))
     a2.set_title("(b) probability density with 68 % (dashed) and 95 % (solid) credible regions", loc="left")
-    a2.set_xlabel("$y$ (m)")
+    a2.set_xlabel("$y$ (m)   ($\\leftarrow$ kicker's left)")
     fig.tight_layout()
     save(fig, f"goal_face_{noise}")
 
 
+GRASS, GRASS2, NET = "#e6f2dc", "#cfe5bf", "#b8b7b2"
+
+
+def _goal3d(ax, depth=1.8):
+    """Goal in 3-D: white posts and crossbar with a dark outline, a net box behind the goal line, and the pitch."""
+    import matplotlib.patheffects as pe
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    a, h, X = 3.72, 2.50, 11.06
+    ax.add_collection3d(Poly3DCollection([[(-0.5, -5, 0), (13.2, -5, 0), (13.2, 5, 0), (-0.5, 5, 0)]], fc=GRASS, ec="none", alpha=0.9))
+    for xs in np.arange(0.0, 13.0, 2.0):                                     # mowing stripes
+        ax.add_collection3d(Poly3DCollection([[(xs, -5, 0), (xs + 1, -5, 0), (xs + 1, 5, 0), (xs, 5, 0)]], fc=GRASS2, ec="none", alpha=0.6))
+    ax.plot([11, 11], [-5, 5], [0, 0], color="white", lw=2.2)               # goal line
+    ax.plot([0], [0], [0], "o", ms=3, color="white", mec=INK2, mew=0.4)      # penalty mark
+    for xs, ys, zs in (([X, X + depth, X + depth, X], [a, a, a, a], [h, h * 0.8, 0, 0]),
+                       ([X, X + depth, X + depth, X], [-a, -a, -a, -a], [h, h * 0.8, 0, 0]),
+                       ([X + depth, X + depth], [-a, a], [h * 0.8, h * 0.8]), ([X + depth, X + depth], [-a, a], [0, 0])):
+        ax.plot(xs, ys, zs, color=NET, lw=0.7)
+    for yy in np.linspace(-a, a, 13):                                        # net mesh, back panel
+        ax.plot([X + depth, X + depth], [yy, yy], [0, h * 0.8], color=NET, lw=0.3, alpha=0.7)
+    for zz in np.linspace(0, h * 0.8, 6):
+        ax.plot([X + depth, X + depth], [-a, a], [zz, zz], color=NET, lw=0.3, alpha=0.7)
+    outline = [pe.Stroke(linewidth=5.0, foreground=INK2), pe.Normal()]
+    ax.plot([X, X, X, X], [-a, -a, a, a], [0, h, h, 0], color="white", lw=3.4, zorder=10, path_effects=outline)
+
+
 def fig_example_3d():
-    """A posterior trajectory that clips the inside of the post and goes in, with the spin before and after the impact."""
+    """A posterior trajectory that clips the inside of the post and goes in: (a) the whole flight in 3-D, (b) the impact seen
+    from above, with the ball drawn to scale, the contact normal and the spin before and after the impact."""
     d = np.load(ROOT / "results" / "raw" / "example_in_off_post.npz")
     path, imp, nofr = d["path"], d["impact"], d["nofr"]
     k = int(np.argmin(np.linalg.norm(path.T - imp, axis=1)))
     w0, w1 = d["spin_before"], d["spin_after"]
-    fig = plt.figure(figsize=(7.4, 3.6))
-    for i, (elev, azim, lim, title) in enumerate(((20, -128, None, "(a) the whole flight"),
-                                                  (28, -150, ((10.3, 11.9), (2.9, 4.3), (0.9, 2.1)), "(b) close-up of the impact"))):
-        ax = fig.add_subplot(1, 2, i + 1, projection="3d")
-        # posts as cylinders (radius 0.06 m, axes at x = 11.06, y = ±3.72)
-        t, zz = np.meshgrid(np.linspace(0, 2 * np.pi, 30), np.linspace(0, 2.5, 2))
-        for yc in (3.72, -3.72):
-            ax.plot_surface(11.06 + 0.06 * np.cos(t), yc + 0.06 * np.sin(t), zz, color=INK2, lw=0, alpha=0.9)
-        ax.plot([11.06, 11.06], [-3.72, 3.72], [2.50, 2.50], color=INK2, lw=2.6)
-        ax.plot(nofr[0], nofr[1], nofr[2], color=MUTED, ls=(0, (3, 2)), lw=1.0)
-        ax.plot(*path[:, :k + 1], color=C["blue"], lw=1.4)
-        ax.plot(*path[:, k:], color=C["orange"], lw=1.4)
-        ax.plot(*imp, "*", ms=11, color=C["red"], zorder=30)
-        if i == 1:
-            u, v = np.mgrid[0:2 * np.pi:24j, 0:np.pi:12j]
-            ax.plot_wireframe(imp[0] + 0.11 * np.cos(u) * np.sin(v), imp[1] + 0.11 * np.sin(u) * np.sin(v),
-                              imp[2] + 0.11 * np.cos(v), color=C["red"], lw=0.3, alpha=0.6)
-            for w, col, lab in ((w0, C["violet"], f"spin axis before: {np.linalg.norm(w0) / 2 / np.pi:.1f} rev/s"),
-                                (w1, C["red"], f"spin axis after: {np.linalg.norm(w1) / 2 / np.pi:.1f} rev/s")):
-                u_ = w / np.linalg.norm(w)
-                ax.quiver(*imp, *(0.4 * u_), color=col, lw=1.4, arrow_length_ratio=0.25)
-                ax.text(*(imp + 0.47 * u_), lab, fontsize=6.5, color=col)
-            ax.set_xlim(*lim[0]); ax.set_ylim(*lim[1]); ax.set_zlim(*lim[2]); ax.set_box_aspect((1.6, 1.4, 1.2))
-        else:
-            ax.plot([0, 11], [0, 0], [0, 0], color=GRID, lw=0.8)
-            ax.set_xlim(0, 12); ax.set_ylim(-4, 4.5); ax.set_zlim(0, 3); ax.set_box_aspect((12, 8.5, 3), zoom=1.0)
-        ax.view_init(elev=elev, azim=azim); ax.tick_params(labelsize=6, pad=-2); _clean3d(ax)
-        ax.set_xlabel("$x$ (m)", labelpad=-6); ax.set_ylabel("$y$ (m)", labelpad=-6); ax.set_zlabel("$z$ (m)", labelpad=-8)
-        ax.set_title(title, loc="left", fontsize=8)
-    handles = [Line2D([], [], color=C["blue"], lw=1.4, label="flight before impact"),
-               Line2D([], [], color=C["orange"], lw=1.4, label="after impact (goal)"),
+    vn = abs(float(d["vn"]))
+    R, rp, post_c = 0.11, 0.06, np.array([11.06, 3.72])
+    fig = plt.figure(figsize=(7.4, 3.9))
+    gs = fig.add_gridspec(1, 2, width_ratios=[1.25, 1], wspace=0.16)
+    # ---- (a) whole flight ----
+    ax = fig.add_subplot(gs[0], projection="3d")
+    _goal3d(ax)
+    ax.plot(nofr[0], nofr[1], nofr[2], color=MUTED, ls=(0, (3, 2)), lw=1.0, zorder=11)
+    ax.plot(*path[:, :k + 1], color=C["blue"], lw=1.6, zorder=12)
+    ax.plot(*path[:, k:], color=C["orange"], lw=1.6, zorder=12)
+    ax.plot(*imp, "o", ms=7, mfc="white", mec=C["red"], mew=1.6, zorder=30)
+    ax.set_xlim(0, 13); ax.set_ylim(-5, 5); ax.set_zlim(0, 3); ax.set_box_aspect((13, 10, 3), zoom=1.15)
+    ax.view_init(elev=22, azim=-125); ax.tick_params(labelsize=6, pad=-2); _clean3d(ax)
+    ax.set_xticks([0, 5.5, 11]); ax.set_yticks([-3.66, 0, 3.66]); ax.set_zticks([0, 2.44])
+    ax.set_xlabel("$x$ (m)", labelpad=-6); ax.set_ylabel("$y$ (m)", labelpad=-6); ax.set_zlabel("$z$ (m)", labelpad=-8)
+    ax.set_title("(a) the whole flight", loc="left", fontsize=9)
+    # ---- (b) the impact from above ----
+    b = fig.add_subplot(gs[1]); b.set_facecolor(GRASS); b.grid(False)
+    xl, yl = (10.35, 11.75), (3.05, 4.32)
+    b.add_patch(matplotlib.patches.Rectangle((11.0, yl[0]), 0.12, yl[1] - yl[0], fc="white", ec="none", zorder=1))   # goal line
+    b.add_patch(matplotlib.patches.Rectangle((11.12, yl[0]), xl[1] - 11.12, 3.66 - yl[0], fc="none", ec=NET, hatch="xx",
+                                             lw=0, zorder=1))                                                              # net
+    b.text(11.56, 3.28, "inside the goal\n(net)", ha="center", va="center", fontsize=7, color=INK2,
+           bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.85), zorder=9)
+    b.text(11.06, 3.08, "goal line", rotation=90, ha="center", va="bottom", fontsize=6.5, color=INK2, zorder=9)
+    b.add_patch(matplotlib.patches.Circle(post_c, rp, fc="white", ec=INK, lw=1.2, zorder=6))
+    b.annotate("post", post_c + [0.0, rp], xytext=(11.35, 3.92), fontsize=7.5, color=INK, zorder=9,
+               arrowprops=dict(arrowstyle="-", color=INK2, lw=0.7))
+    b.plot(nofr[0], nofr[1], color=MUTED, ls=(0, (3, 2)), lw=1.0, zorder=3)
+    b.plot(path[0, :k + 1], path[1, :k + 1], color=C["blue"], lw=1.5, zorder=4)
+    b.plot(path[0, k:], path[1, k:], color=C["orange"], lw=1.5, zorder=4)
+    for j in range(k - 1, 0, -1):                                    # ghost balls every 25 cm before the impact
+        if np.hypot(*(path[:2, j] - imp[:2])) > 0.75:
+            break
+        if j % max(1, int(0.25 / max(np.hypot(*(path[:2, j] - path[:2, j - 1])), 1e-6))) == 0:
+            b.add_patch(matplotlib.patches.Circle(path[:2, j], R, fc="white", ec=C["blue"], lw=0.6, alpha=0.35, zorder=2))
+    b.add_patch(matplotlib.patches.Circle(imp[:2], R, fc="white", ec=C["red"], lw=1.4, zorder=7))
+    n = (post_c - imp[:2]) / np.linalg.norm(post_c - imp[:2])
+    b.plot(*np.c_[imp[:2], post_c], color=C["red"], lw=0.8, ls=(0, (2, 1.5)), zorder=8)
+    b.plot(*(imp[:2] + R * n), "o", ms=3.5, color=C["red"], zorder=9)
+    b.annotate("contact", imp[:2] + R * n, xytext=(11.42, 3.58), fontsize=7.5, color=C["red"], zorder=9,
+               arrowprops=dict(arrowstyle="-", color=C["red"], lw=0.7),
+               bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+    rev = lambda w: np.linalg.norm(w) / 2 / np.pi
+    tilt = lambda w: np.degrees(np.arccos(abs(w[2]) / np.linalg.norm(w)))
+    b.text(0.025, 0.975, f"ball to scale ($R=11$ cm), post $r=6$ cm\nnormal impact speed $v_n={vn:.1f}$ m/s\n"
+           f"spin before: {rev(w0):.1f} rev/s, axis {tilt(w0):.0f}° from vertical\n"
+           f"spin after: {rev(w1):.1f} rev/s, axis {tilt(w1):.0f}° from vertical",
+           transform=b.transAxes, fontsize=6.5, color=INK, va="top", zorder=10,
+           bbox=dict(boxstyle="round,pad=0.35", fc="white", ec=GRID))
+    b.set_xlim(*xl); b.set_ylim(*yl); b.set_aspect("equal")
+    b.set_xlabel("$x$ (m)"); b.set_ylabel("$y$ (m)"); b.set_title("(b) the impact seen from above", loc="left")
+    handles = [Line2D([], [], color=C["blue"], lw=1.5, label="flight before impact"),
+               Line2D([], [], color=C["orange"], lw=1.5, label="after impact (goal)"),
                Line2D([], [], color=MUTED, ls=(0, (3, 2)), lw=1.0, label="same shot without the post"),
-               Line2D([], [], marker="*", ls="", color=C["red"], ms=9, label=f"impact, $v_n={abs(float(d['vn'])):.1f}$ m/s")]
-    fig.legend(handles=handles, loc="lower center", ncol=4, fontsize=7, bbox_to_anchor=(0.5, -0.02))
-    fig.subplots_adjust(left=0.0, right=1.0, top=0.94, bottom=0.12, wspace=0.05)
+               Line2D([], [], marker="o", ls="", mfc="white", mec=C["red"], mew=1.5, ms=7, label="ball at the impact")]
+    fig.legend(handles=handles, loc="lower center", ncol=4, fontsize=7.5, bbox_to_anchor=(0.5, -0.01))
+    fig.subplots_adjust(left=0.0, right=0.99, top=0.94, bottom=0.12)
     save(fig, "example_in_off_post")
 
 
@@ -523,9 +621,9 @@ FIGURES = {"setup": fig_setup, "drag_curves": fig_drag_curves, "lift_curves": fi
 
 
 def fig_goal_probability(noise="rounding"):
-    """(a) P(goal | ball-centre crossing point) on the goal face, from the frame-impact Monte Carlo of goal_probability_map.py,
-    with the final-model posterior entry regions; (b) the two scans across the post and the crossbar, split by outcome;
-    (c) outcome probabilities of the posterior shot for each noise model and spin prior."""
+    """P(goal | ball-centre crossing point) from the frame-impact Monte Carlo of goal_probability_map.py, seen from the penalty mark:
+    (a) the top corner with the final-model posterior entry regions; (b) zoom on the corner where P(goal) falls from 1 to 0;
+    (c) the two scans across the post and the crossbar, split by outcome; (d) outcome shares of the posterior shot."""
     import json
     gm = json.load(open(ROOT / "results" / "final" / f"goal_map_{noise}.json"))
     post, bar = gm["scans"]["post"], gm["scans"]["crossbar"]
@@ -533,39 +631,62 @@ def fig_goal_probability(noise="rounding"):
     zb, pb = np.array([r["z"] for r in bar]), np.array([r["p_goal"] for r in bar])
     fy = lambda y: np.interp(np.abs(y), yp, pp, left=1.0, right=0.0)
     fz = lambda z: np.interp(z, zb, pb, left=1.0, right=0.0)
-    Y, Z = np.meshgrid(np.linspace(1.6, 4.3, 700), np.linspace(1.0, 3.0, 520))
-    P = fy(Y) * fz(Z)                       # separable approximation (exact away from the two top corners)
-    fig = plt.figure(figsize=(7.2, 8.0))
-    gs = fig.add_gridspec(2, 2, height_ratios=[1.3, 1], hspace=0.30, wspace=0.30)
-    a1 = fig.add_subplot(gs[0, :])
-    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("seq", ["#ffffff"] + SEQ)
-    im = a1.pcolormesh(Y, Z, P, cmap=cmap, vmin=0, vmax=1, shading="auto", rasterized=True)
-    a1.add_patch(matplotlib.patches.Rectangle((3.66, 0), 0.12, 2.56, color=INK2))
-    a1.add_patch(matplotlib.patches.Rectangle((-3.78, 2.44), 7.56, 0.12, color=INK2))
-    a1.text(3.72, 1.05, "post", rotation=90, color="white", fontsize=7, ha="center", va="bottom")
-    a1.text(2.0, 2.50, "crossbar", color="white", fontsize=7, ha="center", va="center")
-    a1.annotate("centre inside the goal mouth,\nbut the ball rebounds off the post", xy=(3.62, 1.45), xytext=(2.95, 1.2),
-                fontsize=7, color="white", ha="center", arrowprops=dict(arrowstyle="->", color="white", lw=0.9))
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("rb", [C["red"], "#f3a9a0", "#f4f3ef", "#9ec5f4", "#2a6fc4"])
+    fig = plt.figure(figsize=(7.2, 7.6))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1.05, 1], hspace=0.62, wspace=0.28)
+    a1, a1z = fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1])
     e = _pooled_entries(noise)
     Yk, Zk, D, lev, mode = _hpd(e, grid_y=(-3.9, 4.1), grid_z=(0.0, 2.9), n=320)
-    a1.contour(Yk, Zk, D, levels=[lev[0.95], lev[0.68]], colors=[C["orange"], C["red"]], linewidths=[1.0, 1.4])
-    a1.plot(*mode, "x", color=C["red"], ms=8, mew=1.8)
-    a1.set_xlim(1.6, 4.3); a1.set_ylim(1.0, 3.0); a1.set_aspect("equal"); a1.set_xlabel("$y$ (m)"); a1.set_ylabel("$z$ (m)")
-    a1.set_title("(a) $P$(goal) for a ball centre crossing the goal plane at $(y,z)$: top corner", loc="left")
-    cb = fig.colorbar(im, ax=a1, fraction=0.025, pad=0.01); cb.set_label("$P(\\mathrm{goal}\\mid y,z)$")
-    a1.legend(handles=[Line2D([], [], color=C["red"], lw=1.4, label="68 % posterior region"),
-                       Line2D([], [], color=C["orange"], lw=1.0, label="95 % posterior region"),
-                       Line2D([], [], marker="x", ls="", color=C["red"], mew=1.8, label="most probable entry")],
-              loc="upper left", fontsize=7.5, framealpha=0.9, frameon=True)
+    zoom = ((3.44, 3.74), (2.20, 2.50))
+    for ax, (xl, yl), res in ((a1, ((1.9, 4.0), (1.3, 2.8)), 500), (a1z, zoom, 400)):
+        Y, Z = np.meshgrid(np.linspace(*xl, res), np.linspace(*yl, res))
+        P = np.ma.masked_where((np.abs(Y) > 3.66) | (Z > 2.44), fy(Y) * fz(Z))   # separable approximation; mask = outside the mouth
+        ax.add_patch(matplotlib.patches.Rectangle((xl[0], yl[0]), xl[1] - xl[0], yl[1] - yl[0], fc="#efeeea", ec=GRID, hatch="///",
+                                                  lw=0, zorder=0))
+        im = ax.pcolormesh(Y, Z, P, cmap=cmap, vmin=0, vmax=1, shading="auto", rasterized=True, zorder=1)
+        _goal_face_frame(ax)
+        ax.set_xlim(*xl); ax.set_ylim(*yl); ax.set_aspect("equal"); ax.grid(False)
+        ax.set_xlabel("$y$ (m)   ($\\leftarrow$ kicker's left)"); ax.set_ylabel("$z$ (m)")
+        _kicker_axis(ax)
+    a1.contour(Yk, Zk, D, levels=[lev[0.95]], colors=[INK], linewidths=1.0, linestyles="--")
+    a1.contour(Yk, Zk, D, levels=[lev[0.68]], colors=[INK], linewidths=1.3)
+    a1.plot(*mode, "x", color=INK, ms=7, mew=1.6)
+    a1.add_patch(matplotlib.patches.Rectangle((zoom[0][0], zoom[1][0]), np.diff(zoom[0])[0], np.diff(zoom[1])[0],
+                                              fill=False, ec=INK, lw=1.0, zorder=9))
+    a1.text(zoom[0][0] - 0.03, np.mean(zoom[1]), "(b)", ha="left", va="center", fontsize=7.5, color="white", zorder=9)
+    a1.legend(handles=[Line2D([], [], color=INK, lw=1.3, label="68 % posterior region"),
+                       Line2D([], [], color=INK, lw=1.0, ls="--", label="95 % posterior region"),
+                       Line2D([], [], marker="x", ls="", color=INK, mew=1.6, label="most probable entry"),
+                       matplotlib.patches.Patch(fc="#efeeea", ec=MUTED, hatch="///", label="centre outside the goal mouth")],
+              loc="upper center", bbox_to_anchor=(0.5, -0.2), fontsize=7, ncol=2)
+    a1.set_title("(a) top corner (final model)", loc="left")
+    Yz, Zz = np.meshgrid(np.linspace(*zoom[0], 400), np.linspace(*zoom[1], 400))
+    Pz = np.ma.masked_where((Yz > 3.66) | (Zz > 2.44), fy(Yz) * fz(Zz))
+    cl = a1z.contour(Yz, Zz, Pz, levels=[0.1, 0.5, 0.9], colors=[INK2], linewidths=0.7, zorder=3)
+    a1z.clabel(cl, fmt=lambda v: f"{v:.1f}", fontsize=6.5, inline_spacing=2)
+    fr = lambda y: (zoom[0][1] - y) / (zoom[0][1] - zoom[0][0])          # axes fraction of y on the inverted axis
+    a1z.axvline(3.55, ymax=(2.44 - zoom[1][0]) / np.diff(zoom[1])[0], color=INK, lw=0.8, ls=":", zorder=4)
+    a1z.axhline(2.33, xmin=fr(3.66), color=INK, lw=0.8, ls=":", zorder=4)
+    box = dict(boxstyle="round,pad=0.25", fc="white", ec="none", alpha=0.9)
+    a1z.text(3.48, 2.29, "clean goal\n$P=1$", ha="center", va="center", fontsize=7, color=INK, bbox=box, zorder=6)
+    a1z.text(3.53, 2.405, "rebounds out, $P\\approx0$", ha="center", va="center", fontsize=7, color="white", zorder=6)
+    a1z.text(3.547, 2.207, "first contact\n(11 cm inside)", ha="left", va="bottom", fontsize=6.5, color=INK, bbox=box, zorder=6)
+    a1z.text(3.72, 2.32, "post", rotation=90, ha="center", va="center", fontsize=7.5, color=INK2, zorder=9)
+    a1z.text(3.55, 2.47, "crossbar", ha="center", va="center", fontsize=7.5, color=INK2, zorder=9)
+    a1z.set_title("(b) zoom: where $P$(goal) falls to 0", loc="left")
+    cb = fig.colorbar(im, ax=[a1, a1z], fraction=0.03, pad=0.02, aspect=25)
+    cb.set_label("$P(\\mathrm{goal}\\mid y,z)$"); cb.outline.set_edgecolor(GRID)
     a2 = fig.add_subplot(gs[1, 0])
     for rows, key, edge, lab, col in ((post, "y", 3.66, "post (scan in $y$)", C["blue"]), (bar, "z", 2.44, "crossbar (scan in $z$)", C["violet"])):
         d = np.array([r[key] for r in rows]) - edge
         a2.plot(d * 100, [r["p_goal"] for r in rows], color=col, lw=3.0 if key == "y" else 1.3, label=f"{lab}: $P$(goal)")
         a2.plot(d * 100, [r["goal off the frame"] for r in rows], color=col, lw=1.0, ls=(0, (4, 2)), label=f"{lab}: in off the frame")
-    a2.axvline(0, color=INK2, lw=0.8); a2.axvline(-11, color=MUTED, lw=0.8, ls=":")
-    a2.text(1, 0.5, "inner\nedge", fontsize=7, color=INK2); a2.text(-12, 0.5, "first\ncontact", fontsize=7, color=MUTED, ha="right")
+    a2.axvline(0, color=INK2, lw=0.8); a2.axvline(-11, color=INK2, lw=0.8, ls=":")
+    lb = dict(fontsize=7, color=INK, ha="center", va="bottom", bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none"))
+    a2.text(-11.5, 1.09, "first contact", **{**lb, "ha": "right"}); a2.text(0.5, 1.09, "inner edge", **{**lb, "ha": "left"})
     a2.set_xlabel("crossing point relative to the inner edge (cm)"); a2.set_ylabel("probability")
-    a2.set_title("(b) across the frame", loc="left"); a2.set_ylim(-0.02, 1.05); a2.set_xlim(-25, 25)
+    a2.set_title("(c) across the frame", loc="left", pad=16); a2.set_ylim(-0.02, 1.2); a2.set_xlim(-25, 25)
+    a2.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
     a2.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=1)
     a3 = fig.add_subplot(gs[1, 1])
     cats = [("goal off the frame", C["aqua"]), ("miss off the frame", C["orange"]), ("miss", MUTED)]
@@ -585,10 +706,11 @@ def fig_goal_probability(noise="rounding"):
         for c, col in cats:
             a3.bar(i, 100 * fr[c], bottom=bottom, color=col, width=0.62, edgecolor="white", lw=0.6)
             bottom += 100 * fr[c]
-        a3.text(i, bottom, f"$P$(goal)\n{100 * pg:.1f} %", ha="center", va="bottom", fontsize=7, color=INK)
+        a3.annotate(f"$P$(goal)\n{100 * pg:.1f} %", (i, bottom), xytext=(0, 6), textcoords="offset points",
+                    ha="center", va="bottom", fontsize=7, color=INK)
     a3.set_xticks(x); a3.set_xticklabels([c[0] for c in cases], fontsize=7)
-    a3.set_ylim(0, 1.35 * max([sum(100 * fr[c] for c, _ in cats) for _, fr, _ in cases] + [0.5]))
-    a3.set_ylabel("share of posterior shots (%)"); a3.set_title("(c) shots that are not clean goals", loc="left")
+    a3.set_ylim(0, 1.45 * max([sum(100 * fr[c] for c, _ in cats) for _, fr, _ in cases] + [0.5]))
+    a3.set_ylabel("share of posterior shots (%)"); a3.set_title("(d) shots that are not clean goals", loc="left", pad=16)
     a3.legend(handles=[matplotlib.patches.Patch(color=col, label=c) for c, col in cats], fontsize=6.5, loc="upper left")
     save(fig, "goal_probability")
 
@@ -617,7 +739,7 @@ def fig_coverage():
     """(a) Coverage of the 68 % / 95 % credible regions for every test set, with binomial 1-sigma error bars;
     (b) true versus most probable lateral entry point of every trial."""
     sets = _coverage_sets()
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.2, 3.4), gridspec_kw={"width_ratios": [1.25, 1]})
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.2, 3.8), gridspec_kw={"width_ratios": [1.25, 1]})
     for j, (q, key, col) in enumerate(((0.68, "in68", C["blue"]), (0.95, "in95", C["orange"]))):
         for i, (lab, tr) in enumerate(sets):
             n = len(tr); c = sum(t[key] for t in tr) / n; se = np.sqrt(q * (1 - q) / n)
@@ -628,15 +750,20 @@ def fig_coverage():
     a1.invert_yaxis(); a1.set_xlim(30, 105); a1.set_xlabel("coverage (%): truth inside the stated region")
     a1.set_title("(a) calibration of the credible regions", loc="left")
     a1.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=2, fontsize=7)
-    for lab, tr in sets:
-        if lab.startswith("final"):
-            col = {"final, log-normal, rounding": C["blue"], "final, log-normal, tracking": C["aqua"],
-                   "final, kick, rounding": C["red"], "final, kick, tracking": C["violet"]}[lab]
-            a2.plot([t["true_yz"][0] for t in tr], [t["mode_yz"][0] for t in tr], ".", ms=5, color=col, label=lab.replace("final, ", ""))
+    sty = {"final, log-normal, rounding": (C["blue"], "o"), "final, log-normal, tracking": (C["aqua"], "s"),
+           "final, kick, rounding": (C["red"], "D"), "final, kick, tracking": (C["violet"], "^")}
     lim = (1.0, 5.0)
-    a2.plot(lim, lim, color=INK2, lw=0.8); a2.set_xlim(*lim); a2.set_ylim(*lim); a2.set_aspect("equal")
+    a2.fill_between(lim, [lim[0] - 0.15, lim[1] - 0.15], [lim[0] + 0.15, lim[1] + 0.15], color=GRID, alpha=0.7, lw=0,
+                    label="$\\pm15$ cm (RMS error, rounding)")
+    a2.plot(lim, lim, color=INK2, lw=0.8, zorder=1)
+    for lab, tr in sets:
+        if lab in sty:
+            col, mk = sty[lab]
+            a2.scatter([t["true_yz"][0] for t in tr], [t["mode_yz"][0] for t in tr], s=16, marker=mk, facecolor=col,
+                       edgecolor="white", linewidth=0.5, alpha=0.85, zorder=3, label=lab.replace("final, ", ""))
+    a2.set_xlim(*lim); a2.set_ylim(*lim); a2.set_aspect("equal")
     a2.set_xlabel("true lateral entry $y$ (m)"); a2.set_ylabel("most probable $y$ (m)")
-    a2.set_title("(b) recovered entry points", loc="left"); a2.legend(fontsize=6.5, loc="upper left")
+    a2.set_title("(b) recovered entry points", loc="left"); a2.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2, columnspacing=0.8)
     fig.tight_layout(w_pad=1.5)
     save(fig, "coverage")
 
