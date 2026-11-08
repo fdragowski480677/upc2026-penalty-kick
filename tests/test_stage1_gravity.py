@@ -38,7 +38,7 @@ def test_goal_crossing_time_and_point():
 
 def test_energy_conserved():
     sol, _ = simulate(P0, V0, [gravity])
-    E = 0.5 * np.sum(sol.y[3:] ** 2, axis=0) + G * sol.y[2]
+    E = 0.5 * np.sum(sol.y[3:6] ** 2, axis=0) + G * sol.y[2]
     assert np.ptp(E) < 1e-8 * E[0]
 
 

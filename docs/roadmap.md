@@ -36,7 +36,23 @@ docs/               # physics notes per stage
 - **Regression:** every stage reports the test-case prediction in a comparison table (`results/stage_comparison.md`).
 
 ## Open decisions (to be agreed before the relevant stage)
-1. Ball parameters (m, R): FIFA ranges (410–450 g, 68–70 cm circumference) used as priors or fixed?
+1. ~~Ball parameters (m, R)?~~ **Revised (team decision):** sampled within IFAB Law 2 in the Stage 4 Monte Carlo, with m ~ U(410, 450 g)
+   and circumference ~ U(68, 70 cm). To be tightened to FIFA Quality PRO limits once the test manual is available. (Earlier decision: fixed.)
+6. **Decided (Stage 3):** spin-raised drag on by default, C_D = C_D0 + 0.47·S (Asai 2007), with switches 0 and 0.74 (Kray);
+   C_L(S) nominal = Kray Re 4.62×10⁵ curve, with the other curves and the n = 1/2 limits as switches; spin decay off by default,
+   with switches (`docs/stages/stage3-design.md`).
+7. **Revised (Stage 4):** air density from a climate/venue Monte Carlo over the FIFA World Cup 2026 stadiums (altitude 3–2240 m,
+   T 12–35 °C, RH 20–90 %, moist-air ideal gas + ISA pressure) → ρ ≈ 0.83–1.28 kg/m³; viscosity from Sutherland's law. (Earlier: U(1.10, 1.29).)
+   Otherwise unchanged:
+   still air (wind neglected, stated assumption); the steady seam side force (|C_S| ≲ 0.03–0.05) as an uncertainty term.
+8. **Decided (Stage 4 noise):** report both noise models. *Rounding only*: the given values are exact up to their 2-decimal rounding
+   (uniform ±5 mm, approximated by a Gaussian of equal variance, σ = 2.9 mm). *Tracking*: σ = 1 cm. Isotropic and independent in both cases.
+9. **Decided (Stage 5):** the flight model stays rigid. In-flight deformation is of order 0.1 mm (aerodynamic load ≈ 5–12 N against an internal
+   overpressure of ≈ 60–110 kPa), and the post-kick shell vibrations are damped within ≈ 10–20 ms, before the first observation at 0.05 s.
+   This is a stated and checked assumption. Stage 5 adds (a) an **oblique impact of the spinning ball on a post/crossbar** (restitution
+   depending on pressure, Coulomb friction, rotational inertia ⅔mR²) for the frame-contact samples, giving P(goal) including "in off the
+   frame"; and (b) a **Hertz foot–ball contact model** (Ishii 2012) as a consistency check that the inferred v0 and spin are achievable.
+   Needs literature: ball–rigid-surface impact versus pressure, oblique spinning impacts (Cross), FIFA Quality Programme ball tests.
 2. ~~Which wind-tunnel dataset for $C_D(Re)$ and $C_L(S)$?~~ **Proposed** (literature pass, see `research/literature/README.md`):
    C_D prior 0.22 ± 0.04 (Alam 2010, Asai 2007) plus a spin term; C_L(S) from Kray 2014 at Re 4.6×10⁵. Still open: a spin-decay
    source. The main Stage 3 uncertainty is C_L(S, Re) between Kray's two supercritical curves.
@@ -57,3 +73,6 @@ docs/               # physics notes per stage
      - *miss*: the crossing is outside the frame.
    - The whole ball is over the line after about R/v_x ≈ 4 ms more of flight, a lateral shift of ≈ 1–2 cm. This is
      neglected in the entry point and noted as a systematic.
+
+10. **Decided (Stage 5):** derive a speed-dependent spin prior from the foot–ball contact model (Asai 2002 speed–spin trade-off;
+    Ishii 2012), because a 32.6 m/s shot is more plausibly low-spin. Stage 4 keeps the log-normal prior and reports a log-uniform sensitivity case.
