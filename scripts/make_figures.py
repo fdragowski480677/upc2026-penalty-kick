@@ -103,14 +103,14 @@ def fig_cor_and_kick():
     a1.plot(v, [e_normal(x) for x in v], color=C["blue"], label="model $e_n(v)$")
     price = np.array([[9, 0.89], [14, 0.835], [22, 0.79], [32, 0.735]])
     a1.plot(price[:, 0], price[:, 1], ".", ms=8, color=C["orange"], label="Price et al. 2007")
-    a1.set_xlabel("normal impact speed (m/s)"); a1.set_ylabel("coefficient of restitution")
-    a1.set_title("(a) ball–frame restitution", loc="left"); a1.legend(loc="lower left")
+    a1.set_xlabel("normal impact speed [m/s]"); a1.set_ylabel("coefficient of restitution")
+    a1.set_title("(a)", loc="left"); a1.legend(loc="lower left")
     t = ASAI2002_TABLE
     for sel, col, lab in (((t[:, 0] >= 0.0) & (t[:, 0] <= 0.10), C["blue"], "impact offset $d>0$"),
                           ((t[:, 0] <= 0.0) & (t[:, 0] >= -0.10), C["orange"], "impact offset $d<0$")):
         a2.plot(np.abs(t[sel, 1]), t[sel, 2], ".-", ms=6, color=col, label=lab)
-    a2.set_xlabel("spin (rev/s)"); a2.set_ylabel("ball speed (m/s)")
-    a2.set_title("(b) kick: speed vs spin", loc="left")
+    a2.set_xlabel("spin [rev/s]"); a2.set_ylabel("ball speed [m/s]")
+    a2.set_title("(b)", loc="left")
     a2.legend(loc="lower left", title="Asai 2002, foot 25 m/s", title_fontsize=7, fontsize=7)
     kp = KickSpinPrior()
     i = int(np.argmin(abs(kp.vb - 32.5)))
@@ -123,8 +123,8 @@ def fig_cor_and_kick():
                 ha="center", va="center", arrowprops=dict(arrowstyle="->", color=INK2, lw=0.8),
                 bbox=dict(boxstyle="round,pad=0.25", fc="white", ec=GRID))
     a3.set_ylim(0, p.max() * 1.08)
-    a3.set_xlim(0, 10); a3.set_yticks([]); a3.set_xlabel("spin $\\Omega$ (rev/s)"); a3.set_ylabel("probability density")
-    a3.set_title("(c) spin prior at 32.5 m/s", loc="left")
+    a3.set_xlim(0, 10); a3.set_yticks([]); a3.set_xlabel("spin $\\Omega$ [rev/s]"); a3.set_ylabel("probability density")
+    a3.set_title("(c)", loc="left")
     fig.tight_layout(w_pad=1.2)
     save(fig, "cor_and_kick")
 
@@ -145,10 +145,7 @@ def fig_setup():
     ax.plot([0, 11], [0, 0], [0, 0], color=GRID, lw=0.8)
     # example trajectory: the Stage 3 best fit (gravity + drag + Magnus at 5 rev/s) through the given positions
     tr = _stage_fits()[2][1]
-    ax.plot(*tr, color=C["green"], lw=1.6, zorder=5, label="example trajectory\n(Stage 3 fit, 5 rev/s)")
-    ax.plot([tr[0, -1]], [tr[1, -1]], [tr[2, -1]], "x", ms=7, mew=1.6, color=C["red"], zorder=6, ls="",
-            label=f"its goal entry $(y,z)=({tr[1, -1]:.2f}, {tr[2, -1]:.2f})$ m")
-    ax.legend(loc="upper left", bbox_to_anchor=(0.02, 0.92), fontsize=7)
+    ax.plot(*tr, color=C["green"], lw=1.6, zorder=5)
     pts = np.array([[0, 0, 0.11]] + [o.position for o in TEST_CASE])
     ax.plot(*pts.T, ".", ms=8, color=INK)
     for p, lab in zip(pts, ("$t=0$", "0.05 s", "0.10 s")):
@@ -156,12 +153,16 @@ def fig_setup():
         ax.text(p[0] + 0.15, p[1] + dy, p[2] + dz, lab, fontsize=6, color=INK2)
     for d, lab in ((np.array([2.0, 0, 0]), "$x$"), (np.array([0, 1.8, 0]), "$y$"), (np.array([0, 0, 1.3]), "$z$")):
         _arrow3d(ax, (1.5, -3.4, 0), d, INK, lab, lw=1.1, ratio=0.12, fs=9)
-    ax.text(11, -3.66, 2.75, "goal plane $x=11$ m\n7.32 m $\\times$ 2.44 m", fontsize=6, color=INK2)
     ax.set_xlim(0, 11.5); ax.set_ylim(-4, 4); ax.set_zlim(0, 3)
     ax.set_box_aspect((11.5, 8, 3), zoom=1.0); ax.view_init(elev=20, azim=-128)
-    ax.set_xticks([0, 5.5, 11]); ax.set_yticks([-3.66, 0, 3.66]); ax.set_zticks([0, 2.44]); ax.tick_params(labelsize=6, pad=-2)
-    ax.set_xlabel("$x$ (m)", labelpad=-6); ax.set_ylabel("$y$ (m)", labelpad=-6); ax.set_zlabel("$z$ (m)", labelpad=-8)
-    _clean3d(ax); ax.set_title("(a) coordinates, goal and given positions", loc="left", fontsize=8)
+    ax.set_xticks([0, 5.5, 11]); ax.set_yticks([-3.66, 0, 3.66]); ax.set_zticks([0, 2.44])
+    ax.set_xticklabels(["0", "5.5", "11"]); ax.set_yticklabels(["−3.66", "0", "3.66"]); ax.set_zticklabels(["0", "2.44"])
+    ax.tick_params(labelsize=6, pad=0)
+    for axis in (ax.xaxis, ax.yaxis, ax.zaxis):          # tick labels centred on their ticks
+        for t in axis.get_ticklabels():
+            t.set_ha("center"); t.set_va("center")
+    ax.set_xlabel("$x$ [m]", labelpad=-2); ax.set_ylabel("$y$ [m]", labelpad=-2); ax.zaxis.set_rotate_label(False); ax.set_zlabel("$z$ [m]", labelpad=-4, rotation=90)
+    _clean3d(ax); ax.set_title("(a)", loc="left", fontsize=9)
     # ---- free-body diagram ----
     ax = fig.add_subplot(1, 2, 2, projection="3d")
     u, v = np.mgrid[0:2 * np.pi:40j, 0:np.pi:20j]
@@ -173,12 +174,12 @@ def fig_setup():
     fl = np.cross(w_axis, vr); fl /= np.linalg.norm(fl)
     _arrow3d(ax, vr * 1.05, vr * 1.2, INK, "$\\vec v_r$")
     _arrow3d(ax, -vr * 1.0, -vr * 1.1, C["orange"], "$\\vec F_D$", off=1.55)
-    _arrow3d(ax, fl * 1.0, fl * 1.2, C["green"], "$\\vec F_L$\n(Magnus lift)", fs=8, off=1.3)
+    _arrow3d(ax, fl * 1.0, fl * 1.2, C["green"], "$\\vec F_L$", off=1.3)
     _arrow3d(ax, (0, 0, -1.0), np.array([0, 0, -0.9]), C["blue"], "$m\\vec g$", off=1.25)
     # wind: three parallel streamlines next to the ball (an air flow, not a force on a point), labelled in words
     for dz in (-0.35, 0.0, 0.35):
         ax.quiver(-1.9, 0.2, 1.55 + dz, 0.0, 1.0, 0.0, color=C["violet"], lw=1.2, arrow_length_ratio=0.25, linestyle=(0, (4, 2)))
-    ax.text(-1.9, 1.35, 2.15, "wind $\\vec w$\n(air flow)", color=C["violet"], fontsize=9)
+    ax.text(-1.9, 1.35, 2.15, "$\\vec w$", color=C["violet"], fontsize=10)
     # spin: axis through the ball and a circular arrow around it (right-hand rule)
     ax.plot(*np.outer([-1.6, 1.6], w_axis).T, color=INK2, lw=0.9, ls=(0, (3, 2)))
     e1 = np.cross(w_axis, [1, 0, 0]); e1 /= np.linalg.norm(e1); e2 = np.cross(w_axis, e1)
@@ -188,13 +189,11 @@ def fig_setup():
     ax.plot(*ring, color=C["red"], lw=1.6)
     tip, prev = ring[:, -1], ring[:, -4]
     ax.quiver(*prev, *(tip - prev) * 1.6, color=C["red"], lw=1.6, arrow_length_ratio=0.9)
-    ax.text(*(centre + np.array([0, 0, 0.75])), "spin $\\vec\\omega$", color=C["red"], fontsize=10, ha="center", va="bottom")
+    ax.text(*(centre + np.array([0, 0, 0.75])), "$\\vec\\omega$", color=C["red"], fontsize=10, ha="center", va="bottom")
     ax.set_xlim(-2.3, 2.3); ax.set_ylim(-2.3, 2.3); ax.set_zlim(-2.3, 2.3); ax.set_box_aspect((1, 1, 1), zoom=1.2)
     ax.view_init(elev=24, azim=-135); _clean3d(ax, ticks=False)
-    ax.set_title("(b) forces on the spinning ball (schematic)", loc="left", fontsize=8)
-    fig.text(0.75, 0.0, "$\\vec F_L \\parallel \\vec\\omega\\times\\vec v_r$: clockwise sidespin (seen from above)\ncurls the ball towards $-y$.",
-             fontsize=10, color=INK, ha="center", va="bottom")
-    fig.subplots_adjust(left=0.0, right=1.0, top=0.93, bottom=0.10, wspace=0.0)
+    ax.set_title("(b)", loc="left", fontsize=9)
+    fig.subplots_adjust(left=0.02, right=1.0, top=0.93, bottom=0.02, wspace=0.0)
     save(fig, "setup")
 
 
@@ -208,7 +207,7 @@ def _stage_fits():
     from penalty.integrate import positions_at, simulate
     from penalty.inverse import fit, spin_basis
     out = []
-    for lab, F in (("Stage 1: gravity", [gravity]), ("Stage 2: + drag", [gravity, drag])):
+    for lab, F in (("Stage 1", [gravity]), ("Stage 2", [gravity, drag])):
         f = fit(TEST_CASE, F, AeroParams())
         sol, c = simulate(P0, f.v0, F, AeroParams())
         out.append((lab, sol.sol(np.linspace(0, c.t, 300))[:3]))
@@ -223,7 +222,7 @@ def _stage_fits():
         return ((positions_at(P0, q[:3], ts, F, replace(AeroParams(), spin=spin_of(q))) - data) / 0.01).ravel()
     q = min((least_squares(res, [30.3, 9.2, 6.9, ph], method="lm") for ph in (-1.4, -1.7)), key=lambda r: r.cost).x
     sol, c = simulate(P0, q[:3], F, replace(AeroParams(), spin=spin_of(q)))
-    out.append(("Stage 3: + Magnus (5 rev/s)", sol.sol(np.linspace(0, c.t, 300))[:3]))
+    out.append(("Stage 3", sol.sol(np.linspace(0, c.t, 300))[:3]))
     return out
 
 
@@ -256,7 +255,7 @@ def fig_profile_likelihood():
     a1.axhline(1.0, color=INK2, lw=0.8, ls="--"); a1.text(14.8, 1.05, "$\\Delta\\chi^2=1$ (1$\\sigma$)", ha="right", va="bottom",
                                                          fontsize=8, color=INK2)
     a1.set_xlabel("spin rate (rev/s), held fixed"); a1.set_ylabel("$\\Delta\\chi^2$ (tracking, $\\sigma=1$ cm)")
-    a1.set_ylim(0, 4); a1.set_title("(a) the data barely prefer any spin", loc="left")
+    a1.set_ylim(0, 4); a1.set_title("(a)", loc="left")
     a2.plot(a[:, 0], a[:, 2], ".-", color=C["orange"], ms=6, label="lateral $y$")
     a2.plot(a[:, 0], a[:, 3], ".-", color=C["green"], ms=6, label="height $z$")
     a2.axhline(3.66, color=C["orange"], lw=1.0, ls="--")
@@ -264,16 +263,16 @@ def fig_profile_likelihood():
     a2.axhline(2.44, color=C["green"], lw=1.0, ls="--")
     a2.text(0.3, 2.38, "crossbar, $z=2.44$ m", ha="left", va="top", fontsize=8, color=C["green"])
     a2.set_xlabel("spin rate (rev/s), held fixed"); a2.set_ylabel("entry point (m)"); a2.set_ylim(1.6, 3.9)
-    a2.set_title("(b) ... but the entry point moves", loc="left"); a2.legend(loc="center right", bbox_to_anchor=(1.0, 0.62), fontsize=9)
+    a2.set_title("(b)", loc="left"); a2.legend(loc="center right", bbox_to_anchor=(1.0, 0.62), fontsize=9)
     fig.tight_layout(w_pad=1.5)
     save(fig, "profile_likelihood")
     print("profile: ", np.round(a, 3).tolist())
 
 
 BAYES_STAGES = [   # (label, colour, chain prefix, files) ; Stages 5-6 need the final production run (results/final/)
-    ("Stage 4: Bayesian, log-normal spin", C["violet"], "", None),
-    ("Stage 5: + kick-mechanics spin prior", C["aqua"], "final_kick_", [("no_wind", "kray2014_re462")]),
-    ("Stage 6: + wind (final model)", C["red"], "final_kick_", None),
+    ("Stage 4", C["violet"], "", None),
+    ("Stage 5", C["aqua"], "final_kick_", [("no_wind", "kray2014_re462")]),
+    ("Stage 6", C["red"], "final_kick_", None),
 ]
 
 
@@ -317,7 +316,7 @@ def fig_stage_trajectories():
         for ax, k in ((top, 1), (side, 2)):
             if last:
                 lo, hi = _band(trs, k, xg)
-                ax.fill_between(xg, lo, hi, color=tint(col), lw=0, zorder=1.5, label="Stage 6: 68 % band" if k == 1 else None)
+                ax.fill_between(xg, lo, hi, color=tint(col), lw=0, zorder=1.5, label="Stage 6 (68 % band)" if k == 1 else None)
             ax.plot(rep[0], rep[k], color=col, lw=1.4, ls=(0, (1, 1)), label=lab if k == 1 else None)
     for ax, k in ((top, 1), (side, 2)):
         ax.plot([0] + [o.position[0] for o in TEST_CASE], [P0[k]] + [o.position[k] for o in TEST_CASE], ".", ms=8,
@@ -325,7 +324,7 @@ def fig_stage_trajectories():
         ax.axvline(11.0, color=INK2, lw=0.8)
     top.axhline(3.66, color=INK2, lw=2.2); top.text(0.2, 3.5, "post ($y=3.66$ m)", va="top", color=INK2, fontsize=8)
     side.axhline(2.44, color=INK2, lw=2.2); side.text(0.2, 2.30, "crossbar ($z=2.44$ m)", va="top", color=INK2, fontsize=8)
-    top.set_ylabel("$y$ (m), lateral"); side.set_ylabel("$z$ (m), height"); side.set_xlabel("$x$ (m), towards goal")
+    top.set_ylabel("$y$ [m], lateral"); side.set_ylabel("$z$ [m], height"); side.set_xlabel("$x$ [m], towards goal")
     top.set_xlim(0, 11.5); top.set_ylim(-0.2, 4.0)
     top.set_title("top view", loc="left"); side.set_title("side view", loc="left")
     # zoom on the last 1.5 m before the goal, where the stages separate
@@ -341,7 +340,7 @@ def fig_stage_trajectories():
         ins.set_xlim(9.5, 11.05); ins.set_ylim(*ylim); ins.tick_params(labelsize=7)
         ins.set_title("zoom: last 1.5 m before the goal", loc="left", fontsize=8)
         ax.add_patch(matplotlib.patches.Rectangle((9.5, ylim[0]), 1.55, ylim[1] - ylim[0], fill=False, ec=MUTED, lw=0.8))
-    zside.set_xlabel("$x$ (m)")
+    zside.set_xlabel("$x$ [m]")
     h, l = top.get_legend_handles_labels()
     fig.legend(h, l, loc="lower center", ncol=2, fontsize=7.5, bbox_to_anchor=(0.5, -0.02))
     fig.tight_layout(rect=(0, 0.15, 1, 1))
@@ -427,7 +426,7 @@ def fig_trajectories_3d(noise="rounding"):
     pts = np.array([[0, 0, 0.11]] + [o.position for o in TEST_CASE])
     fig = plt.figure(figsize=(7.2, 5.9))
     gs = fig.add_gridspec(2, 2, height_ratios=[1, 1.35], width_ratios=[1.25, 1], hspace=0.02, wspace=0.12)
-    # ---- (a) oblique 3-D view ----
+    # ---- (a) flight curve in 3-D ----
     ax = fig.add_subplot(gs[0, 0], projection="3d")
     _frame3d(ax)
     a, X = 3.66, 11.0
@@ -439,16 +438,15 @@ def fig_trajectories_3d(noise="rounding"):
         ax.add_collection3d(Poly3DCollection([list(zip(np.full(len(v), X), v[:, 0], v[:, 1]))], facecolor=col, edgecolor=col,
                                              alpha=alpha, lw=0.8))
     for (lab, tr), (col, ls) in zip(stages, STAGE):
-        ax.plot(tr[0], tr[1], np.zeros_like(tr[2]), color=GRID, lw=0.8)              # ground shadow (depth cue)
         ax.plot(*tr, color=col, ls=ls, lw=1.2)
     for lab, col, _, rep in bayes:
         ax.plot(*rep, color=col, lw=1.5, ls=(0, (1, 1)))
     ax.plot(*pts.T, ".", ms=7, color=INK, zorder=20)
     ax.set_xlim(0, 11.5); ax.set_ylim(-4, 4); ax.set_zlim(0, 3)
     ax.set_box_aspect((11.5, 8, 3), zoom=1.15); ax.view_init(elev=22, azim=-132)
-    ax.set_xlabel("$x$ (m)", labelpad=-6); ax.set_ylabel("$y$ (m)", labelpad=-6); ax.set_zlabel("$z$ (m)", labelpad=-8)
+    ax.set_xlabel("$x$ [m]", labelpad=-6); ax.set_ylabel("$y$ [m]", labelpad=-6); ax.zaxis.set_rotate_label(False); ax.set_zlabel("$z$ [m]", labelpad=-8, rotation=90)
     ax.set_xticks([0, 5.5, 11]); ax.set_yticks([-3.66, 0, 3.66]); ax.set_zticks([0, 2.44]); ax.tick_params(labelsize=6, pad=-2)
-    _clean3d(ax); ax.set_title("(a) oblique view from behind the kicker", loc="left", fontsize=9)
+    _clean3d(ax); ax.set_title("(a)", loc="left", fontsize=9)
     # ---- (b) the goal as the kicker sees it (view along +x; +y is on the kicker's left), (c) zoom ----
     b = fig.add_subplot(gs[0, 1]); c = fig.add_subplot(gs[1, 0])
     zoom = ((2.15, 3.35), (1.60, 2.30))
@@ -475,15 +473,15 @@ def fig_trajectories_3d(noise="rounding"):
             ax.add_patch(matplotlib.patches.Rectangle((zoom[0][0], zoom[1][0]), np.diff(zoom[0])[0], np.diff(zoom[1])[0],
                                                       fill=False, ec=INK, lw=0.8, ls="--", zorder=9))
             ax.text(np.mean(zoom[0]), zoom[1][0] - 0.06, "zoom (c)", ha="center", va="top", fontsize=7, color=INK)
-            ax.set_title("(b) the goal as the kicker sees it", loc="left")
+            ax.set_title("(b)", loc="left")
         else:
             for k, (yy, zz) in enumerate(ends):
                 ax.annotate(f"S{k + 1}", (yy, zz), xytext=offs[k], textcoords="offset points", fontsize=7.5, color=INK,
                             zorder=10, bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="none", alpha=0.75))
             ax.set_xlim(*zoom[0]); ax.set_ylim(*zoom[1])
-            ax.set_title("(c) zoom on the entry points (S1–S6: stages)", loc="left")
+            ax.set_title("(c)", loc="left")
         _kicker_axis(ax)
-        ax.set_aspect("equal"); ax.set_xlabel("$y$ (m)   ($\\leftarrow$ kicker's left)"); ax.set_ylabel("$z$ (m)")
+        ax.set_aspect("equal"); ax.set_xlabel("$y$ [m]   ($\\leftarrow$ kicker's left)"); ax.set_ylabel("$z$ [m]")
     handles = [Line2D([], [], color=col, ls=ls, lw=1.3, marker=mk, mfc=col, mew=0, ms=6, label=l)
                for (l, _), (col, ls), mk in zip(stages, STAGE, ("o", "s", "^"))]
     handles += [Line2D([], [], color=col, lw=1.4, ls=(0, (1, 1)), marker=mk, mfc=col, mew=0, ms=7, label=lab)
@@ -509,11 +507,11 @@ def fig_goal_face(noise="rounding"):
     for ax in (a1, a2):
         _goal_face_frame(ax)
         ax.axhline(0, color=MUTED, lw=0.8)
-        ax.set_xlim(-4.2, 4.2); ax.set_ylim(0, 2.9); ax.set_aspect("equal"); ax.set_ylabel("$z$ (m)")
+        ax.set_xlim(-4.2, 4.2); ax.set_ylim(0, 2.9); ax.set_aspect("equal"); ax.set_ylabel("$z$ [m]")
     _kicker_axis(a1)                               # shared x: inverting once mirrors both panels
     sub = e[np.random.default_rng(1).choice(len(e), 6000, replace=False)]
     a1.plot(sub[:, 0], sub[:, 1], ".", ms=1.2, color=POST, alpha=0.35, rasterized=True)
-    a1.set_title(f"(a) {len(sub)} sampled entry points (ball centre crossing $x=11$ m), seen from the penalty mark", loc="left")
+    a1.set_title("(a)", loc="left")
     a2.contourf(Y, Z, D, levels=np.linspace(lev[0.95], D.max(), 10), cmap=cmap)
     a2.contour(Y, Z, D, levels=[lev[0.95]], colors=[SEQ[4]], linewidths=1.0)
     a2.contour(Y, Z, D, levels=[lev[0.68]], colors=[INK], linewidths=1.0, linestyles="--")
@@ -522,8 +520,8 @@ def fig_goal_face(noise="rounding"):
     a2.plot(*mode, "+", ms=9, mew=1.4, color=C["red"])
     a2.annotate(f"most probable entry\n$(y,z)=({mode[0]:.2f}, {mode[1]:.2f})$ m", mode, xytext=(0.9, 1.0), fontsize=7.5,
                 color=INK, arrowprops=dict(arrowstyle="-", color=INK2, lw=0.7))
-    a2.set_title("(b) probability density with 68 % (dashed) and 95 % (solid) credible regions", loc="left")
-    a2.set_xlabel("$y$ (m)   ($\\leftarrow$ kicker's left)")
+    a2.set_title("(b)", loc="left")
+    a2.set_xlabel("$y$ [m]   ($\\leftarrow$ kicker's left)")
     fig.tight_layout()
     save(fig, f"goal_face_{noise}")
 
@@ -572,10 +570,15 @@ def fig_example_3d():
     ax.plot(*path[:, k:], color=C["orange"], lw=1.6, zorder=12)
     ax.plot(*imp, "o", ms=7, mfc="white", mec=C["red"], mew=1.6, zorder=30)
     ax.set_xlim(0, 13); ax.set_ylim(-5, 5); ax.set_zlim(0, 3); ax.set_box_aspect((13, 10, 3), zoom=1.15)
-    ax.view_init(elev=22, azim=-125); ax.tick_params(labelsize=6, pad=-2); _clean3d(ax)
+    ax.view_init(elev=22, azim=-125); ax.tick_params(labelsize=6, pad=0); _clean3d(ax)
     ax.set_xticks([0, 5.5, 11]); ax.set_yticks([-3.66, 0, 3.66]); ax.set_zticks([0, 2.44])
-    ax.set_xlabel("$x$ (m)", labelpad=-6); ax.set_ylabel("$y$ (m)", labelpad=-6); ax.set_zlabel("$z$ (m)", labelpad=-8)
-    ax.set_title("(a) the whole flight", loc="left", fontsize=9)
+    ax.set_xticklabels(["0", "5.5", "11"]); ax.set_yticklabels(["\u22123.66", "0", "3.66"]); ax.set_zticklabels(["0", "2.44"])
+    for axis in (ax.xaxis, ax.yaxis, ax.zaxis):          # tick labels centred on their ticks
+        for t in axis.get_ticklabels():
+            t.set_ha("center"); t.set_va("center")
+    ax.set_xlabel("$x$ [m]", labelpad=-2); ax.set_ylabel("$y$ [m]", labelpad=-2)
+    ax.zaxis.set_rotate_label(False); ax.set_zlabel("$z$ [m]", labelpad=-4, rotation=90)
+    ax.set_title("(a)", loc="left", fontsize=9)
     # ---- (b) the impact from above ----
     b = fig.add_subplot(gs[1]); b.set_facecolor(GRASS); b.grid(False)
     xl, yl = (10.35, 11.75), (3.05, 4.32)
@@ -611,7 +614,7 @@ def fig_example_3d():
            transform=b.transAxes, fontsize=6.5, color=INK, va="top", zorder=10,
            bbox=dict(boxstyle="round,pad=0.35", fc="white", ec=GRID))
     b.set_xlim(*xl); b.set_ylim(*yl); b.set_aspect("equal")
-    b.set_xlabel("$x$ (m)"); b.set_ylabel("$y$ (m)"); b.set_title("(b) the impact seen from above", loc="left")
+    b.set_xlabel("$x$ [m]"); b.set_ylabel("$y$ [m]"); b.set_title("(b)", loc="left")
     handles = [Line2D([], [], color=C["blue"], lw=1.5, label="flight before impact"),
                Line2D([], [], color=C["orange"], lw=1.5, label="after impact (goal)"),
                Line2D([], [], color=MUTED, ls=(0, (3, 2)), lw=1.0, label="same shot without the post"),
@@ -656,7 +659,7 @@ def fig_goal_probability(noise="rounding"):
         im = ax.pcolormesh(Y, Z, P, cmap=cmap, vmin=0, vmax=1, shading="auto", rasterized=True, zorder=1)
         _goal_face_frame(ax)
         ax.set_xlim(*xl); ax.set_ylim(*yl); ax.set_aspect("equal"); ax.grid(False)
-        ax.set_xlabel("$y$ (m)   ($\\leftarrow$ kicker's left)"); ax.set_ylabel("$z$ (m)")
+        ax.set_xlabel("$y$ [m]   ($\\leftarrow$ kicker's left)"); ax.set_ylabel("$z$ [m]")
         _kicker_axis(ax)
     a1.contour(Yk, Zk, D, levels=[lev[0.95]], colors=[INK], linewidths=1.0, linestyles="--")
     a1.contour(Yk, Zk, D, levels=[lev[0.68]], colors=[INK], linewidths=1.3)
@@ -669,7 +672,7 @@ def fig_goal_probability(noise="rounding"):
                        Line2D([], [], marker="x", ls="", color=INK, mew=1.6, label="most probable entry"),
                        matplotlib.patches.Patch(fc="#efeeea", ec=MUTED, hatch="///", label="centre outside the goal mouth")],
               loc="upper center", bbox_to_anchor=(0.5, -0.2), fontsize=7, ncol=2)
-    a1.set_title("(a) top corner (final model)", loc="left")
+    a1.set_title("(a)", loc="left")
     Yz, Zz = np.meshgrid(np.linspace(*zoom[0], 400), np.linspace(*zoom[1], 400))
     Pz = np.ma.masked_where((Yz > 3.66) | (Zz > 2.44), fy(Yz) * fz(Zz))
     cl = a1z.contour(Yz, Zz, Pz, levels=[0.1, 0.5, 0.9], colors=[INK2], linewidths=0.7, zorder=3)
@@ -683,7 +686,7 @@ def fig_goal_probability(noise="rounding"):
     a1z.text(3.547, 2.207, "first contact\n(11 cm inside)", ha="left", va="bottom", fontsize=6.5, color=INK, bbox=box, zorder=6)
     a1z.text(3.72, 2.32, "post", rotation=90, ha="center", va="center", fontsize=7.5, color=INK2, zorder=9)
     a1z.text(3.55, 2.47, "crossbar", ha="center", va="center", fontsize=7.5, color=INK2, zorder=9)
-    a1z.set_title("(b) zoom: where $P$(goal) falls to 0", loc="left")
+    a1z.set_title("(b)", loc="left")
     cb = fig.colorbar(im, ax=[a1, a1z], fraction=0.03, pad=0.02, aspect=25)
     cb.set_label("$P(\\mathrm{goal}\\mid y,z)$"); cb.outline.set_edgecolor(GRID)
     a2 = fig.add_subplot(gs[1, 0])
@@ -694,8 +697,8 @@ def fig_goal_probability(noise="rounding"):
     a2.axvline(0, color=INK2, lw=0.8); a2.axvline(-11, color=INK2, lw=0.8, ls=":")
     lb = dict(fontsize=7, color=INK, ha="center", va="bottom", bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none"))
     a2.text(-11.5, 1.09, "first contact", **{**lb, "ha": "right"}); a2.text(0.5, 1.09, "inner edge", **{**lb, "ha": "left"})
-    a2.set_xlabel("crossing point relative to the inner edge (cm)"); a2.set_ylabel("probability")
-    a2.set_title("(c) across the frame", loc="left", pad=16); a2.set_ylim(-0.02, 1.2); a2.set_xlim(-25, 25)
+    a2.set_xlabel("crossing point relative to the inner edge [cm]"); a2.set_ylabel("probability")
+    a2.set_title("(c)", loc="left", pad=16); a2.set_ylim(-0.02, 1.2); a2.set_xlim(-25, 25)
     a2.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
     a2.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=1)
     a3 = fig.add_subplot(gs[1, 1])
@@ -720,7 +723,7 @@ def fig_goal_probability(noise="rounding"):
                     ha="center", va="bottom", fontsize=7, color=INK)
     a3.set_xticks(x); a3.set_xticklabels([c[0] for c in cases], fontsize=7)
     a3.set_ylim(0, 1.45 * max([sum(100 * fr[c] for c, _ in cats) for _, fr, _ in cases] + [0.5]))
-    a3.set_ylabel("share of posterior shots (%)"); a3.set_title("(d) shots that are not clean goals", loc="left", pad=16)
+    a3.set_ylabel("share of posterior shots [%]"); a3.set_title("(d)", loc="left", pad=16)
     a3.legend(handles=[matplotlib.patches.Patch(color=col, label=c) for c, col in cats], fontsize=6.5, loc="upper left")
     save(fig, "goal_probability")
 
@@ -757,8 +760,8 @@ def fig_coverage():
                         label=(f"{int(q * 100)} % region" if i == 0 else None))
         a1.axvline(100 * q, color=col, lw=0.9, ls="--")
     a1.set_yticks(range(len(sets))); a1.set_yticklabels([f"{l} ($n={len(t)}$)" for l, t in sets], fontsize=7)
-    a1.invert_yaxis(); a1.set_xlim(30, 105); a1.set_xlabel("coverage (%): truth inside the stated region")
-    a1.set_title("(a) calibration of the credible regions", loc="left")
+    a1.invert_yaxis(); a1.set_xlim(30, 105); a1.set_xlabel("coverage [%]: truth inside the stated region")
+    a1.set_title("(a)", loc="left")
     a1.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=2, fontsize=7)
     sty = {"final, log-normal, rounding": (C["blue"], "o"), "final, log-normal, tracking": (C["aqua"], "s"),
            "final, kick, rounding": (C["red"], "D"), "final, kick, tracking": (C["violet"], "^")}
@@ -772,8 +775,8 @@ def fig_coverage():
             a2.scatter([t["true_yz"][0] for t in tr], [t["mode_yz"][0] for t in tr], s=8, marker=mk, facecolor=col,
                        edgecolor="none", linewidth=0, alpha=0.85, zorder=3, label=lab.replace("final, ", ""))
     a2.set_xlim(*lim); a2.set_ylim(*lim); a2.set_aspect("equal")
-    a2.set_xlabel("true lateral entry $y$ (m)"); a2.set_ylabel("most probable $y$ (m)")
-    a2.set_title("(b) recovered entry points", loc="left"); a2.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2, columnspacing=0.8)
+    a2.set_xlabel("true lateral entry $y$ [m]"); a2.set_ylabel("most probable $y$ [m]")
+    a2.set_title("(b)", loc="left"); a2.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2, columnspacing=0.8)
     fig.tight_layout(w_pad=1.5)
     save(fig, "coverage")
 
@@ -795,18 +798,30 @@ def fig_sensitivity():
     lg = _entry_of_npz(ROOT / "results" / "raw" / "stage4_rounding_final_lognormal_kray2014_re462.npz")
     rows += [("S6", *r) for r in _sens_rows(bf, [("log-normal spin prior instead of kick", lg)])]
     rows.sort(key=lambda r: max(abs(r[2]), abs(r[3])))
-    fig, ax = plt.subplots(figsize=(7.2, 4.6))
+    fig, ax = plt.subplots(figsize=(7.2, 6.4))
     hw = 50 * (b4["y"]["p84"] - b4["y"]["p16"])
     ax.axvspan(-hw, hw, color=GRID, alpha=0.6, lw=0, label=f"68 % half-width of $y$ ({hw:.0f} cm)")
     for i, (st, lab, dy, dz, *_ ) in enumerate(rows):
         ax.barh(i + 0.18, dy, height=0.34, color=C["blue"], label="$\\Delta y$ (lateral)" if i == 0 else None)
         ax.barh(i - 0.18, dz, height=0.34, color=C["orange"], label="$\\Delta z$ (height)" if i == 0 else None)
+    clear = {SENS_LABELS["spin_prior_loguniform_1_10"]: "spin prior: any spin from 1 to 10 rev/s, equally likely\non a log scale (instead of the log-normal prior)",
+             SENS_LABELS["spin_drag_off"]: "drag does not increase with spin",
+             SENS_LABELS["spin_drag_kray_0.74"]: "drag increases faster with spin (Kray 2014)",
+             SENS_LABELS["spin_decay_asai2020"]: "spin slows down during the flight (Asai 2020)",
+             SENS_LABELS["no_seam_force"]: "no seam side force",
+             SENS_LABELS["rho_uniform_1.10_1.29"]: "air density anywhere in 1.10–1.29 kg/m$^3$\n(instead of the venue climate)",
+             SENS_LABELS["ball_fixed_0.43kg_0.11m"]: "ball mass and radius fixed (0.43 kg, 0.11 m)",
+             SENS_LABELS["lift_limit_linear"]: "lift keeps rising at high spin (upper bound)",
+             SENS_LABELS["lift_limit_saturated"]: "lift stops rising at high spin (lower bound)",
+             SENS_LABELS["kray2014_re_interp"]: "lift curve of Kray 2014, varying with speed",
+             SENS_LABELS["asai2007_re455"]: "lift curve of Asai 2007 instead of Kray 2014",
+             SENS_LABELS["asai2007_re_interp"]: "lift curve of Asai 2007, varying with speed",
+             SENS_LABELS["final_kick_no_wind"]: "no wind",
+             "log-normal spin prior instead of kick": "log-normal spin prior instead of\nthe kick-mechanics prior"}
     ax.set_yticks(range(len(rows)))
-    ax.set_yticklabels([f"{lab.replace(chr(92) + 'mathcal U', chr(92) + 'mathrm{U}').replace('--', '–')}  [{'Stage 4' if st == 'S4' else 'final'}]"
-                        for st, lab, *_ in rows], fontsize=7)
-    ax.axvline(0, color=INK2, lw=0.8); ax.set_xlabel("shift of the median entry point (cm), main case")
-    ax.legend(loc="lower right", fontsize=7.5)
-    ax.set_title("Sensitivity of the prediction to each modelling choice", loc="left")
+    ax.set_yticklabels([f"{clear.get(lab, lab)}  ({'Stage 4' if st == 'S4' else 'final model'})" for st, lab, *_ in rows], fontsize=7.5)
+    ax.axvline(0, color=INK2, lw=0.8); ax.set_xlabel("shift of the median entry point [cm], main case")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.09), ncol=3, fontsize=7.5)
     fig.tight_layout()
     save(fig, "sensitivity")
 
@@ -816,7 +831,7 @@ def fig_accuracy_by_shot():
     the distance of the true crossing point from the nearer post; binned medians as horizontal bars."""
     import json
     d = json.load(open(ROOT / "results" / "final" / "accuracy_by_shot.json"))
-    keys = (("speed", "launch speed (m/s)"), ("spin", "spin (rev/s)"), ("post_dist", "true entry: distance inside the post (m)"))
+    keys = (("speed", "launch speed [m/s]"), ("spin", "spin [rev/s]"), ("post_dist", "true entry: distance inside the post [m]"))
     fig, axs = plt.subplots(1, 3, figsize=(7.2, 2.9), sharey=True)
     sty = {"rounding": (C["blue"], "o", "positions exact to rounding (main case)"), "tracking": (C["orange"], "s", "1 cm tracking noise")}
     for ax, (k, lab) in zip(axs, keys):
@@ -830,7 +845,7 @@ def fig_accuracy_by_shot():
         if k == "post_dist":
             ax.axvline(0, color=INK2, lw=0.8)
             ax.text(-0.08, 150, "outside", fontsize=7, color=INK2, ha="right"); ax.text(0.08, 150, "inside", fontsize=7, color=INK2)
-    axs[0].set_ylabel("lateral error $|\\Delta y|$ (cm)")
+    axs[0].set_ylabel("lateral error $|\\Delta y|$ [cm]")
     axs[0].yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
     h, l = axs[0].get_legend_handles_labels()
     h += [Line2D([], [], color=INK2, lw=2.2)]; l += ["median in each bin"]
@@ -859,8 +874,8 @@ def fig_horizon():
     a1.axvline(0.10, color=MUTED, lw=0.8, ls=":"); a1.axvline(t_goal, color=INK2, lw=1.0)
     a1.text(0.104, 0.55, "given\ndata", fontsize=7, color=INK2, va="bottom")
     a1.text(t_goal - 0.004, 50, f"ball at the\ngoal, {t_goal:.2f} s", fontsize=7, color=INK2, va="top", ha="right")
-    a1.set_xlim(0.07, 0.42); a1.set_xlabel("last observation time (s)")
-    a1.set_ylabel("68 % half-width of the entry point (cm)"); a1.set_title("(a) the entry point sharpens", loc="left")
+    a1.set_xlim(0.07, 0.42); a1.set_xlabel("last observation time [s]")
+    a1.set_ylabel("68 % half-width of the entry point [cm]"); a1.set_title("(a)", loc="left")
     a1.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
     # (b) time line, t = 0 at the kick
     rows = [("ball in flight", 0.0, t_goal, C["blue"]),
@@ -876,8 +891,8 @@ def fig_horizon():
     a2.text(0.012, -0.5, "kick", fontsize=7, color=INK2, va="top")
     a2.set_ylim(4.6, -0.6)
     a2.set_yticks([]); a2.spines["left"].set_visible(False); a2.grid(axis="y", visible=False)
-    a2.set_xlim(-0.75, 0.5); a2.set_xlabel("time relative to the kick (s)")
-    a2.set_title("(b) the keeper must decide before the kick", loc="left")
+    a2.set_xlim(-0.75, 0.5); a2.set_xlabel("time relative to the kick [s]")
+    a2.set_title("(b)", loc="left")
     fig.tight_layout(w_pad=1.2)
     save(fig, "observation_horizon")
 
@@ -897,8 +912,8 @@ def fig_launch_point():
     a1.set_yscale("log"); a1.set_ylim(0.01, 3e3)
     a1.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
     a1.axvspan(-12, -9, color=GRID, lw=0)
-    a1.set_xlabel("start of free flight $\\tau$ relative to $t=0$ (ms)"); a1.set_ylabel("$\\Delta\\chi^2$ ($\\sigma=2.9$ mm)")
-    a1.set_title("(a) the data fix the start of the flight", loc="left"); a1.set_xlim(-6.3, 6.3)
+    a1.set_xlabel("start of free flight $\\tau$ relative to $t=0$ [ms]"); a1.set_ylabel("$\\Delta\\chi^2$ ($\\sigma=2.9$ mm)")
+    a1.set_title("(a)", loc="left"); a1.set_xlim(-6.3, 6.3)
     rows = {r["case"]: r for r in d["rows"]}
     b = rows["baseline"]
     names = [("baseline", "baseline: $t=0$ at $(0,0,0.11)$"), ("r0_5mm", "launch point $\\pm5$ mm"), ("r0_10mm", "launch point $\\pm10$ mm"),
@@ -913,7 +928,7 @@ def fig_launch_point():
                 color=INK2, va="center")
     a2.axvline(0, color=INK2, lw=0.8)
     a2.set_yticks(range(len(names))); a2.set_yticklabels([n for _, n in names], fontsize=7); a2.invert_yaxis()
-    a2.set_xlabel("shift of the median entry point (cm)"); a2.set_title("(b) effect on the prediction", loc="left")
+    a2.set_xlabel("shift of the median entry point [cm]"); a2.set_title("(b)", loc="left")
     a2.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
     fig.tight_layout(w_pad=1.0)
     save(fig, "launch_point")
