@@ -461,6 +461,8 @@ def fig_goal_face(noise="rounding"):
     a2.contourf(Y, Z, D, levels=np.linspace(lev[0.95], D.max(), 10), cmap=cmap)
     a2.contour(Y, Z, D, levels=[lev[0.95]], colors=[SEQ[4]], linewidths=1.0)
     a2.contour(Y, Z, D, levels=[lev[0.68]], colors=[INK], linewidths=1.0, linestyles="--")
+    import json   # quote the most probable point of the full pooled posterior (as in the text), not of this plotting subsample
+    mode = tuple(json.load(open(ROOT / "results" / "stage4" / f"summary_{noise}.json"))["pooled"]["mode_yz"])
     a2.plot(*mode, "+", ms=9, mew=1.4, color=C["red"])
     a2.annotate(f"most probable entry\n$(y,z)=({mode[0]:.2f}, {mode[1]:.2f})$ m", mode, xytext=(-1.6, 1.0), fontsize=7.5,
                 color=INK, arrowprops=dict(arrowstyle="-", color=INK2, lw=0.7))
