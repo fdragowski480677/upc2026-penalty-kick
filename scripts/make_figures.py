@@ -516,7 +516,7 @@ def fig_example_3d():
 
 FIGURES = {"setup": fig_setup, "drag_curves": fig_drag_curves, "lift_curves": fig_lift_curves, "cor_and_kick": fig_cor_and_kick,
            "stage_trajectories": fig_stage_trajectories, "profile_likelihood": fig_profile_likelihood, "trajectories_3d": fig_trajectories_3d,
-           "goal_face_rounding": fig_goal_face, "goal_probability": fig_goal_probability, "example_in_off_post": fig_example_3d}
+           "goal_face_rounding": fig_goal_face, "goal_probability": lambda: fig_goal_probability(), "example_in_off_post": fig_example_3d}
 
 
 def fig_goal_probability(noise="rounding"):
@@ -530,36 +530,40 @@ def fig_goal_probability(noise="rounding"):
     zb, pb = np.array([r["z"] for r in bar]), np.array([r["p_goal"] for r in bar])
     fy = lambda y: np.interp(np.abs(y), yp, pp, left=1.0, right=0.0)
     fz = lambda z: np.interp(z, zb, pb, left=1.0, right=0.0)
-    Y, Z = np.meshgrid(np.linspace(-4.3, 4.3, 600), np.linspace(0.11, 3.0, 220))
+    Y, Z = np.meshgrid(np.linspace(1.6, 4.3, 700), np.linspace(1.0, 3.0, 520))
     P = fy(Y) * fz(Z)                       # separable approximation (exact away from the two top corners)
-    fig = plt.figure(figsize=(7.2, 6.6))
-    gs = fig.add_gridspec(2, 2, height_ratios=[1.15, 1], hspace=0.38, wspace=0.28)
+    fig = plt.figure(figsize=(7.2, 8.0))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1.3, 1], hspace=0.30, wspace=0.30)
     a1 = fig.add_subplot(gs[0, :])
     cmap = matplotlib.colors.LinearSegmentedColormap.from_list("seq", ["#ffffff"] + SEQ)
     im = a1.pcolormesh(Y, Z, P, cmap=cmap, vmin=0, vmax=1, shading="auto", rasterized=True)
-    for r in ((3.66, 0), (-3.78, 0)):
-        a1.add_patch(matplotlib.patches.Rectangle(r, 0.12, 2.56, color=INK2))
+    a1.add_patch(matplotlib.patches.Rectangle((3.66, 0), 0.12, 2.56, color=INK2))
     a1.add_patch(matplotlib.patches.Rectangle((-3.78, 2.44), 7.56, 0.12, color=INK2))
+    a1.text(3.72, 1.05, "post", rotation=90, color="white", fontsize=7, ha="center", va="bottom")
+    a1.text(2.0, 2.50, "crossbar", color="white", fontsize=7, ha="center", va="center")
+    a1.annotate("centre inside the goal mouth,\nbut the ball rebounds off the post", xy=(3.62, 1.45), xytext=(2.95, 1.2),
+                fontsize=7, color="white", ha="center", arrowprops=dict(arrowstyle="->", color="white", lw=0.9))
     e = _pooled_entries(noise)
     Yk, Zk, D, lev, mode = _hpd(e, grid_y=(-3.9, 4.1), grid_z=(0.0, 2.9), n=320)
     a1.contour(Yk, Zk, D, levels=[lev[0.95], lev[0.68]], colors=[C["orange"], C["red"]], linewidths=[1.0, 1.4])
     a1.plot(*mode, "x", color=C["red"], ms=8, mew=1.8)
-    a1.set_xlim(-4.3, 4.3); a1.set_ylim(0, 3.0); a1.set_aspect("equal"); a1.set_xlabel("$y$ (m)"); a1.set_ylabel("$z$ (m)")
-    a1.set_title("(a) probability of a goal for a ball centre crossing the goal plane at $(y,z)$", loc="left")
+    a1.set_xlim(1.6, 4.3); a1.set_ylim(1.0, 3.0); a1.set_aspect("equal"); a1.set_xlabel("$y$ (m)"); a1.set_ylabel("$z$ (m)")
+    a1.set_title("(a) $P$(goal) for a ball centre crossing the goal plane at $(y,z)$: top corner", loc="left")
     cb = fig.colorbar(im, ax=a1, fraction=0.025, pad=0.01); cb.set_label("$P(\\mathrm{goal}\\mid y,z)$")
     a1.legend(handles=[Line2D([], [], color=C["red"], lw=1.4, label="68 % posterior region"),
                        Line2D([], [], color=C["orange"], lw=1.0, label="95 % posterior region"),
                        Line2D([], [], marker="x", ls="", color=C["red"], mew=1.8, label="most probable entry")],
-              loc="lower center", ncol=3, fontsize=8, bbox_to_anchor=(0.5, -0.42))
+              loc="upper left", fontsize=7.5, framealpha=0.9, frameon=True)
     a2 = fig.add_subplot(gs[1, 0])
     for rows, key, edge, lab, col in ((post, "y", 3.66, "post (scan in $y$)", C["blue"]), (bar, "z", 2.44, "crossbar (scan in $z$)", C["violet"])):
         d = np.array([r[key] for r in rows]) - edge
-        a2.plot(d * 100, [r["p_goal"] for r in rows], color=col, lw=1.5, label=f"{lab}: $P$(goal)")
+        a2.plot(d * 100, [r["p_goal"] for r in rows], color=col, lw=3.0 if key == "y" else 1.3, label=f"{lab}: $P$(goal)")
         a2.plot(d * 100, [r["goal off the frame"] for r in rows], color=col, lw=1.0, ls=(0, (4, 2)), label=f"{lab}: in off the frame")
     a2.axvline(0, color=INK2, lw=0.8); a2.axvline(-11, color=MUTED, lw=0.8, ls=":")
-    a2.text(1, 0.55, "inner edge", fontsize=7, color=INK2); a2.text(-10, 0.3, "$-R$", fontsize=7, color=MUTED)
+    a2.text(1, 0.5, "inner\nedge", fontsize=7, color=INK2); a2.text(-12, 0.5, "first\ncontact", fontsize=7, color=MUTED, ha="right")
     a2.set_xlabel("crossing point relative to the inner edge (cm)"); a2.set_ylabel("probability")
-    a2.set_title("(b) across the frame", loc="left"); a2.legend(fontsize=6.5, loc="upper right"); a2.set_ylim(-0.02, 1.05)
+    a2.set_title("(b) across the frame", loc="left"); a2.set_ylim(-0.02, 1.05); a2.set_xlim(-25, 25)
+    a2.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=1)
     a3 = fig.add_subplot(gs[1, 1])
     cats = [("goal off the frame", C["aqua"]), ("miss off the frame", C["orange"]), ("miss", MUTED)]
     cases = []
