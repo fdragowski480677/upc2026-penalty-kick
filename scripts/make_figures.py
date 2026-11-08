@@ -308,11 +308,17 @@ def fig_stage_trajectories():
     for (lab, tr), (col, ls) in zip(stages, STAGE):
         top.plot(tr[0], tr[1], color=col, ls=ls, label=lab); side.plot(tr[0], tr[2], color=col, ls=ls)
     xg = np.linspace(0, 11, 120)
-    for lab, col, trs, rep in _bayes_stage_paths():
+    paths = _bayes_stage_paths()
+    # only the final model's 16-84 % band is shaded, as one opaque tint: overlapping translucent bands left pale seams and let
+    # the grid shine through as white strips
+    tint = lambda c: matplotlib.colors.to_rgb(c) * np.array(0.2) + np.array(0.8)
+    for i, (lab, col, trs, rep) in enumerate(paths):
+        last = i == len(paths) - 1
         for ax, k in ((top, 1), (side, 2)):
-            lo, hi = _band(trs, k, xg)
-            ax.fill_between(xg, lo, hi, color=col, alpha=0.15, lw=0)
-            ax.plot(rep[0], rep[k], color=col, lw=1.4, ls=(0, (1, 1)), label=lab + " (68 % band)" if k == 1 else None)
+            if last:
+                lo, hi = _band(trs, k, xg)
+                ax.fill_between(xg, lo, hi, color=tint(col), lw=0, zorder=1.5, label="Stage 6: 68 % band" if k == 1 else None)
+            ax.plot(rep[0], rep[k], color=col, lw=1.4, ls=(0, (1, 1)), label=lab if k == 1 else None)
     for ax, k in ((top, 1), (side, 2)):
         ax.plot([0] + [o.position[0] for o in TEST_CASE], [P0[k]] + [o.position[k] for o in TEST_CASE], ".", ms=8,
                 color=INK, zorder=5, label="given positions" if k == 1 else None)
@@ -326,9 +332,10 @@ def fig_stage_trajectories():
     for ax, k, ylim, ins in ((top, 1, (2.3, 3.3), ztop), (side, 2, (1.75, 2.15), zside)):
         for (lab, tr), (col, ls) in zip(stages, STAGE):
             ins.plot(tr[0], tr[k], color=col, ls=ls)
-        for lab, col, trs, rep in _bayes_stage_paths():
-            lo, hi = _band(trs, k, xg)
-            ins.fill_between(xg, lo, hi, color=col, alpha=0.15, lw=0)
+        for i, (lab, col, trs, rep) in enumerate(paths):
+            if i == len(paths) - 1:
+                lo, hi = _band(trs, k, xg)
+                ins.fill_between(xg, lo, hi, color=tint(col), lw=0, zorder=1.5)
             ins.plot(rep[0], rep[k], color=col, lw=1.4, ls=(0, (1, 1)))
         ins.axvline(11.0, color=INK2, lw=0.8)
         ins.set_xlim(9.5, 11.05); ins.set_ylim(*ylim); ins.tick_params(labelsize=7)
@@ -617,7 +624,9 @@ def fig_example_3d():
 FIGURES = {"setup": fig_setup, "drag_curves": fig_drag_curves, "lift_curves": fig_lift_curves, "cor_and_kick": fig_cor_and_kick,
            "stage_trajectories": fig_stage_trajectories, "profile_likelihood": fig_profile_likelihood, "trajectories_3d": fig_trajectories_3d,
            "goal_face_rounding": fig_goal_face, "goal_probability": lambda: fig_goal_probability(),
-           "coverage": lambda: fig_coverage(), "sensitivity": lambda: fig_sensitivity(), "example_in_off_post": fig_example_3d}
+           "coverage": lambda: fig_coverage(), "sensitivity": lambda: fig_sensitivity(), "example_in_off_post": fig_example_3d,
+           "accuracy_by_shot": lambda: fig_accuracy_by_shot(), "observation_horizon": lambda: fig_horizon(),
+           "launch_point": lambda: fig_launch_point()}
 
 
 def fig_goal_probability(noise="rounding"):
@@ -800,6 +809,114 @@ def fig_sensitivity():
     ax.set_title("Sensitivity of the prediction to each modelling choice", loc="left")
     fig.tight_layout()
     save(fig, "sensitivity")
+
+
+def fig_accuracy_by_shot():
+    """Lateral error of the most probable point for every blind coverage trial of the final model, against launch speed, spin and
+    the distance of the true crossing point from the nearer post; binned medians as horizontal bars."""
+    import json
+    d = json.load(open(ROOT / "results" / "final" / "accuracy_by_shot.json"))
+    keys = (("speed", "launch speed (m/s)"), ("spin", "spin (rev/s)"), ("post_dist", "true entry: distance inside the post (m)"))
+    fig, axs = plt.subplots(1, 3, figsize=(7.2, 2.9), sharey=True)
+    sty = {"rounding": (C["blue"], "o", "positions exact to rounding (main case)"), "tracking": (C["orange"], "s", "1 cm tracking noise")}
+    for ax, (k, lab) in zip(axs, keys):
+        for nz, (col, mk, nl) in sty.items():
+            R = [r for r in d["trials"] if r["noise"] == nz]
+            ax.scatter([r[k] for r in R], [100 * abs(r["dy"]) for r in R], s=7, marker=mk, color=col, alpha=0.55, lw=0, label=nl)
+            for b in d["summary"][nz]["bins"][k]:
+                lo = max(b["lo"], min(r[k] for r in R)); hi = min(b["hi"], max(r[k] for r in R))
+                ax.plot([lo, hi], [100 * b["median_abs_dy"]] * 2, color=col, lw=2.2, solid_capstyle="butt")
+        ax.set_yscale("log"); ax.set_ylim(0.1, 300); ax.set_xlabel(lab)
+        if k == "post_dist":
+            ax.axvline(0, color=INK2, lw=0.8)
+            ax.text(-0.08, 150, "outside", fontsize=7, color=INK2, ha="right"); ax.text(0.08, 150, "inside", fontsize=7, color=INK2)
+    axs[0].set_ylabel("lateral error $|\\Delta y|$ (cm)")
+    axs[0].yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
+    h, l = axs[0].get_legend_handles_labels()
+    h += [Line2D([], [], color=INK2, lw=2.2)]; l += ["median in each bin"]
+    fig.legend(h, l, loc="lower center", ncol=3, fontsize=7.5, bbox_to_anchor=(0.5, -0.03), markerscale=2)
+    fig.tight_layout(rect=(0, 0.08, 1, 1), w_pad=0.8)
+    save(fig, "accuracy_by_shot")
+
+
+def fig_horizon():
+    """The goalkeeper's view: (a) 68 % half-widths of the entry point against the last observation time; (b) time line of the
+    ball's flight against the goalkeeper's dive (Hunter et al. 2018: dive onset 0.22 +- 0.11 s before the kick; Ibrahim et al.
+    2019: about 1.0 s from dive onset to ball contact for the fastest posture)."""
+    import json
+    d = json.load(open(ROOT / "results" / "final" / "observation_horizon.json"))
+    t_goal = d["truth_entry_tyz"][0]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.2, 3.1), gridspec_kw={"width_ratios": [1, 1.1]})
+    for nz, ls, mk, nl in (("rounding", "-", "o", "rounding (main case)"), ("tracking", (0, (4, 2)), "s", "1 cm tracking")):
+        R = [r for r in d["rows"] if r["noise"] == nz]
+        T = [r["T"] for r in R]
+        a1.plot(T, [100 * r["y_hw68"] for r in R], ls=ls, marker=mk, ms=4, mew=0, color=C["blue"], label=f"lateral $y$, {nl}")
+        a1.plot(T, [100 * r["z_hw68"] for r in R], ls=ls, marker=mk, ms=4, mew=0, color=C["green"], label=f"height $z$, {nl}")
+    a1.set_yscale("log"); a1.set_ylim(0.5, 60)
+    a1.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
+    a1.axhline(11, color=MUTED, lw=0.8, ls=":")
+    a1.text(0.385, 12, "ball radius", fontsize=6.5, color=INK2, ha="right", va="bottom")
+    a1.axvline(0.10, color=MUTED, lw=0.8, ls=":"); a1.axvline(t_goal, color=INK2, lw=1.0)
+    a1.text(0.104, 0.55, "given\ndata", fontsize=7, color=INK2, va="bottom")
+    a1.text(t_goal - 0.004, 50, f"ball at the\ngoal, {t_goal:.2f} s", fontsize=7, color=INK2, va="top", ha="right")
+    a1.set_xlim(0.07, 0.42); a1.set_xlabel("last observation time (s)")
+    a1.set_ylabel("68 % half-width of the entry point (cm)"); a1.set_title("(a) the entry point sharpens", loc="left")
+    a1.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
+    # (b) time line, t = 0 at the kick
+    rows = [("ball in flight", 0.0, t_goal, C["blue"]),
+            ("observed (given data)", 0.0, 0.10, C["green"]),
+            ("entry known to $\\pm5$ cm (main case)", 0.15, t_goal, C["violet"]),
+            ("fastest dive, onset to contact", t_goal - 1.0, t_goal, C["orange"]),
+            ("elite dive onset", -0.22 - 0.11, -0.22 + 0.11, C["red"])]
+    for i, (lab, t0, t1, col) in enumerate(rows):
+        a2.barh(i, t1 - t0, left=t0, height=0.55, color=col, lw=0)
+        a2.text(t0 - 0.02 if i < 3 else t1 + 0.02, i, lab, fontsize=7, va="center", ha="right" if i < 3 else "left", color=INK)
+    a2.plot([-0.22], [4], "|", color=INK, ms=9, mew=1.2)
+    a2.axvline(0, color=INK2, lw=1.0); a2.axvline(t_goal, color=INK2, lw=1.0, ls=(0, (3, 2)))
+    a2.text(0.012, -0.5, "kick", fontsize=7, color=INK2, va="top")
+    a2.set_ylim(4.6, -0.6)
+    a2.set_yticks([]); a2.spines["left"].set_visible(False); a2.grid(axis="y", visible=False)
+    a2.set_xlim(-0.75, 0.5); a2.set_xlabel("time relative to the kick (s)")
+    a2.set_title("(b) the keeper must decide before the kick", loc="left")
+    fig.tight_layout(w_pad=1.2)
+    save(fig, "observation_horizon")
+
+
+def fig_launch_point():
+    """Robustness to t = 0: (a) chi^2 profile in the start of free flight; (b) shift of the median entry point per test case."""
+    import json
+    d = json.load(open(ROOT / "results" / "final" / "launch_point_test.json"))
+    pr = d["tau_profile"]["rows"]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.2, 2.9), gridspec_kw={"width_ratios": [1, 1.15]})
+    t = np.array([r["tau_ms"] for r in pr]); c = np.array([r["chi2"] for r in pr])
+    dc = c - c.min(); ib = int(dc.argmin())
+    a1.plot(t, np.maximum(dc, 0.03), ".-", color=C["blue"], ms=4, mew=0)
+    a1.annotate(f"best fit, {t[ib]:+.1f} ms", (t[ib], 0.03), (2.2, 0.05), fontsize=7, color=INK2,
+                arrowprops=dict(arrowstyle="-", color=MUTED, lw=0.7))
+    a1.axhline(1, color=INK2, lw=0.8, ls="--"); a1.text(-5.8, 1.3, "$\\Delta\\chi^2=1$", fontsize=7, color=INK2)
+    a1.set_yscale("log"); a1.set_ylim(0.01, 3e3)
+    a1.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
+    a1.axvspan(-12, -9, color=GRID, lw=0)
+    a1.set_xlabel("start of free flight $\\tau$ relative to $t=0$ (ms)"); a1.set_ylabel("$\\Delta\\chi^2$ ($\\sigma=2.9$ mm)")
+    a1.set_title("(a) the data fix the start of the flight", loc="left"); a1.set_xlim(-6.3, 6.3)
+    rows = {r["case"]: r for r in d["rows"]}
+    b = rows["baseline"]
+    names = [("baseline", "baseline: $t=0$ at $(0,0,0.11)$"), ("r0_5mm", "launch point $\\pm5$ mm"), ("r0_10mm", "launch point $\\pm10$ mm"),
+             ("tau_m5", "free flight from $-5$ ms"), ("tau_p5", "free flight from $+5$ ms"), ("tau_p10", "free flight from $+10$ ms")]
+    for i, (k, lab) in enumerate(names):
+        r = rows[k]
+        for j, (ax_, col) in enumerate((("y", C["blue"]), ("z", C["orange"]))):
+            q = r[ax_]
+            a2.errorbar(100 * (q[1] - b[ax_][1]), i + (0.15 if j else -0.15), xerr=[[100 * (q[1] - q[0])], [100 * (q[2] - q[1])]],
+                        fmt="o", ms=4, capsize=2, lw=1, color=col, label=(f"$\\Delta {ax_}$ with 68 % interval" if i == 0 else None))
+        a2.text(1.02, i, f"$\\chi^2_\\mathrm{{min}}={r['chi2_min']:.1f}$" if r['chi2_min'] < 100 else f"$\\chi^2_\\mathrm{{min}}={r['chi2_min']:.0f}$", transform=a2.get_yaxis_transform(), fontsize=6.5,
+                color=INK2, va="center")
+    a2.axvline(0, color=INK2, lw=0.8)
+    a2.set_yticks(range(len(names))); a2.set_yticklabels([n for _, n in names], fontsize=7); a2.invert_yaxis()
+    a2.set_xlabel("shift of the median entry point (cm)"); a2.set_title("(b) effect on the prediction", loc="left")
+    a2.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
+    fig.tight_layout(w_pad=1.0)
+    save(fig, "launch_point")
 
 
 CHAINS = ""   # chain-file prefix: "" = Stage 4 posterior, "final_<spin prior>_" = final unified model (set in main)
