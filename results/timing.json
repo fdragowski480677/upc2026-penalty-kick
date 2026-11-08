@@ -1,0 +1,364 @@
+{
+ "machine": {
+  "cpu": "x86_64",
+  "python": "3.13.12",
+  "load_average_at_benchmark": [
+   2.38623046875,
+   5.67822265625,
+   8.1552734375
+  ]
+ },
+ "micro_s": {
+  "trajectory_dop853_s": 0.028087900005630217,
+  "trajectory_with_frame_impact_s": 0.49372309199679876,
+  "fit_stage1_s": 0.027106999994430225,
+  "fit_stage3_s": 1.0485266269970452,
+  "log_posterior_128_walkers_s": 0.01739370100403903,
+  "goal_plane_10000_samples_s": 11.216997451501811,
+  "log_posterior_per_walker_us": 135.88828909405493,
+  "goal_plane_per_sample_us": 1121.6997451501811
+ },
+ "production_chains": [
+  {
+   "run": "stage4_rounding",
+   "chain": "kray2014_re462",
+   "runtime_s": 1416.1,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 691.455078125
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "kray2014_re_interp",
+   "runtime_s": 1507.0,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 735.83984375
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "asai2007_re455",
+   "runtime_s": 1419.3,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 693.017578125
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "asai2007_re_interp",
+   "runtime_s": 1505.2,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 734.9609375
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "spin_prior_loguniform_1_10",
+   "runtime_s": 1396.9,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 682.080078125
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "spin_drag_off",
+   "runtime_s": 1469.4,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 717.48046875
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "spin_drag_kray_0.74",
+   "runtime_s": 1448.8,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 707.4218749999999
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "spin_decay_asai2020",
+   "runtime_s": 1489.5,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 727.294921875
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "no_seam_force",
+   "runtime_s": 1467.4,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 716.50390625
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "rho_uniform_1.10_1.29",
+   "runtime_s": 1376.7,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 672.216796875
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "ball_fixed_0.43kg_0.11m",
+   "runtime_s": 1455.7,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 710.791015625
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "lift_limit_linear",
+   "runtime_s": 654.3,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 319.482421875
+  },
+  {
+   "run": "stage4_rounding",
+   "chain": "lift_limit_saturated",
+   "runtime_s": 643.4,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 314.16015625
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "kray2014_re462",
+   "runtime_s": 835.1,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 652.421875
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "kray2014_re_interp",
+   "runtime_s": 872.2,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 681.40625
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "asai2007_re455",
+   "runtime_s": 826.2,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 645.46875
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "asai2007_re_interp",
+   "runtime_s": 868.9,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 678.828125
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "spin_prior_loguniform_1_10",
+   "runtime_s": 850.5,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 664.453125
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "spin_drag_off",
+   "runtime_s": 840.6,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 656.71875
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "spin_drag_kray_0.74",
+   "runtime_s": 838.8,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 655.3125
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "spin_decay_asai2020",
+   "runtime_s": 859.1,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 671.171875
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "no_seam_force",
+   "runtime_s": 844.3,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 659.6093749999999
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "rho_uniform_1.10_1.29",
+   "runtime_s": 830.0,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 648.4375
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "ball_fixed_0.43kg_0.11m",
+   "runtime_s": 845.4,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 660.46875
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "lift_limit_linear",
+   "runtime_s": 355.1,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 277.421875
+  },
+  {
+   "run": "stage4_tracking",
+   "chain": "lift_limit_saturated",
+   "runtime_s": 358.2,
+   "walker_steps": 1280000,
+   "us_per_walker_step": 279.84375
+  },
+  {
+   "run": "final_rounding",
+   "chain": "final_lognormal_kray2014_re462",
+   "runtime_s": 1648.0,
+   "walker_steps": 2560000,
+   "us_per_walker_step": 643.75
+  },
+  {
+   "run": "final_rounding",
+   "chain": "final_lognormal_kray2014_re_interp",
+   "runtime_s": 1790.0,
+   "walker_steps": 2560000,
+   "us_per_walker_step": 699.21875
+  },
+  {
+   "run": "final_rounding",
+   "chain": "final_lognormal_asai2007_re455",
+   "runtime_s": 1641.3,
+   "walker_steps": 2560000,
+   "us_per_walker_step": 641.1328125
+  },
+  {
+   "run": "final_rounding",
+   "chain": "final_lognormal_asai2007_re_interp",
+   "runtime_s": 1790.7,
+   "walker_steps": 2560000,
+   "us_per_walker_step": 699.4921875
+  },
+  {
+   "run": "final_rounding",
+   "chain": "final_kick_kray2014_re462",
+   "runtime_s": 1751.8,
+   "walker_steps": 2560000,
+   "us_per_walker_step": 684.296875
+  },
+  {
+   "run": "final_rounding",
+   "chain": "final_kick_kray2014_re_interp",
+   "runtime_s": 1844.4,
+   "walker_steps": 2560000,
+   "us_per_walker_step": 720.4687500000001
+  },
+  {
+   "run": "final_rounding",
+   "chain": "final_kick_asai2007_re455",
+   "runtime_s": 1727.2,
+   "walker_steps": 2560000,
+   "us_per_walker_step": 674.6875
+  },
+  {
+   "run": "final_rounding",
+   "chain": "final_kick_asai2007_re_interp",
+   "runtime_s": 1819.9,
+   "walker_steps": 2560000,
+   "us_per_walker_step": 710.8984375
+  },
+  {
+   "run": "final_rounding",
+   "chain": "final_kick_no_wind",
+   "runtime_s": 1754.1,
+   "walker_steps": 2560000,
+   "us_per_walker_step": 685.1953124999999
+  },
+  {
+   "run": "final_rounding",
+   "chain": "final_kick_spin_decay",
+   "runtime_s": 1790.7,
+   "walker_steps": 2560000,
+   "us_per_walker_step": 699.4921875
+  },
+  {
+   "run": "final_rounding",
+   "chain": "final_kick_rho_uniform",
+   "runtime_s": 1721.8,
+   "walker_steps": 2560000,
+   "us_per_walker_step": 672.578125
+  },
+  {
+   "run": "final_tracking",
+   "chain": "final_lognormal_kray2014_re462",
+   "runtime_s": 1351.2,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 659.765625
+  },
+  {
+   "run": "final_tracking",
+   "chain": "final_lognormal_kray2014_re_interp",
+   "runtime_s": 1523.7,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 743.994140625
+  },
+  {
+   "run": "final_tracking",
+   "chain": "final_lognormal_asai2007_re455",
+   "runtime_s": 1400.9,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 684.033203125
+  },
+  {
+   "run": "final_tracking",
+   "chain": "final_lognormal_asai2007_re_interp",
+   "runtime_s": 1513.2,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 738.8671875
+  },
+  {
+   "run": "final_tracking",
+   "chain": "final_kick_kray2014_re462",
+   "runtime_s": 1499.8,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 732.32421875
+  },
+  {
+   "run": "final_tracking",
+   "chain": "final_kick_kray2014_re_interp",
+   "runtime_s": 1595.7,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 779.1503906250001
+  },
+  {
+   "run": "final_tracking",
+   "chain": "final_kick_asai2007_re455",
+   "runtime_s": 1464.3,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 714.990234375
+  },
+  {
+   "run": "final_tracking",
+   "chain": "final_kick_asai2007_re_interp",
+   "runtime_s": 1597.3,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 779.931640625
+  },
+  {
+   "run": "final_tracking",
+   "chain": "final_kick_no_wind",
+   "runtime_s": 1511.6,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 738.0859374999999
+  },
+  {
+   "run": "final_tracking",
+   "chain": "final_kick_spin_decay",
+   "runtime_s": 1571.8,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 767.4804687499999
+  },
+  {
+   "run": "final_tracking",
+   "chain": "final_kick_rho_uniform",
+   "runtime_s": 1486.3,
+   "walker_steps": 2048000,
+   "us_per_walker_step": 725.732421875
+  }
+ ],
+ "projected_wall_clock_s": {
+  "11": 6199.5,
+  "64": 1844.4,
+  "256": 1844.4
+ }
+}
