@@ -2,6 +2,7 @@
 
 Usage:  PYTHONPATH=src .venv/bin/python scripts/run_stage5.py --noise tracking [--max-contacts 3000] [--procs 11]
         PYTHONPATH=src .venv/bin/python scripts/run_stage5.py --model final --spin-prior kick --noise rounding
+        PYTHONPATH=src .venv/bin/python scripts/run_stage5.py --model final --spin-prior kick --noise rounding --chain no_wind
   (--model final reads the unified-model chains results/raw/stage4_<noise>_final_<spin prior>_<curve>.npz, wind included,
    and writes results/final/goal_probability_<noise>_<spin prior>.json)
 
@@ -75,6 +76,8 @@ def main():
     ap.add_argument("--procs", type=int, default=11)
     ap.add_argument("--model", choices=("stage4", "final"), default="stage4")
     ap.add_argument("--spin-prior", choices=("lognormal", "kick"), default="kick")
+    ap.add_argument("--chain", default=None,
+                    help="with --model final: one sensitivity chain instead of the four pooled C_L curves, e.g. no_wind (= Stage 5)")
     a = ap.parse_args()
     prefix = f"final_{a.spin_prior}_" if a.model == "final" else ""
     rng = np.random.default_rng(42)
@@ -82,10 +85,11 @@ def main():
     counts = {CLEAN_GOAL: 0, MISS: 0}
     cand, split = [], {}
     n_total = 0
-    for c in CURVES:
-        d = np.load(ROOT / "results" / "raw" / f"stage4_{a.noise}_{prefix}{c}.npz")
+    files = [(a.chain, "kray2014_re462")] if a.chain else [(c, c) for c in CURVES]   # sensitivity chains use the Kray curve
+    for f, c in files:
+        d = np.load(ROOT / "results" / "raw" / f"stage4_{a.noise}_{prefix}{f}.npz")
         th, en = d["samples"], d["entries"]
-        split[c] = split_half(en)
+        split[f] = split_half(en)
         for i in range(len(th)):
             if not np.all(np.isfinite(en[i])):
                 counts[MISS] += 1; n_total += 1; continue
@@ -115,6 +119,8 @@ def main():
               "split_half_quantiles": split}
     out = ROOT / "results" / ("final" if a.model == "final" else "stage5"); out.mkdir(parents=True, exist_ok=True)
     name = f"goal_probability_{a.noise}_{a.spin_prior}.json" if a.model == "final" else f"goal_probability_{a.noise}.json"
+    if a.chain:
+        name = name.replace(".json", f"_{a.chain}.json")
     (out / name).write_text(json.dumps(report, indent=2))
     print(json.dumps({k: v for k, v in report.items() if k != "split_half_quantiles"}, indent=2))
     for c, v in split.items():

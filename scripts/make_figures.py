@@ -760,7 +760,7 @@ def fig_coverage():
     for lab, tr in sets:
         if lab in sty:
             col, mk = sty[lab]
-            a2.scatter([t["true_yz"][0] for t in tr], [t["mode_yz"][0] for t in tr], s=16, marker=mk, facecolor=col,
+            a2.scatter([t["true_yz"][0] for t in tr], [t["mode_yz"][0] for t in tr], s=8, marker=mk, facecolor=col,
                        edgecolor="none", linewidth=0, alpha=0.85, zorder=3, label=lab.replace("final, ", ""))
     a2.set_xlim(*lim); a2.set_ylim(*lim); a2.set_aspect("equal")
     a2.set_xlabel("true lateral entry $y$ (m)"); a2.set_ylabel("most probable $y$ (m)")

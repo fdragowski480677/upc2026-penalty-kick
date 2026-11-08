@@ -1,0 +1,47 @@
+{
+  "model": "final",
+  "spin_prior": "kick",
+  "noise": "rounding",
+  "n_samples": 29056,
+  "p_far_clean_goal": 0.9340239537444934,
+  "p_far_miss": 0.0,
+  "p_near_frame": 0.06597604625550661,
+  "n_resolved": 1917,
+  "near_frame_outcomes": {
+    "clean goal": 0.9697443922796035,
+    "goal off the frame": 0.023995826812728223,
+    "miss off the frame": 0.006259780907668232,
+    "miss": 0.0
+  },
+  "p_goal": 0.9995870044052864,
+  "p_goal_mc_se": 3.0616690205873676e-05,
+  "impact_priors": {
+    "e_x": "U(0, 0.2)",
+    "mu": "U(0.2, 0.8)",
+    "e_n_offset": "N(0, 0.03)"
+  },
+  "split_half_quantiles": {
+    "no_wind": {
+      "y_first": [
+        2.5728,
+        2.6735,
+        2.7739
+      ],
+      "y_second": [
+        2.578,
+        2.675,
+        2.7757
+      ],
+      "z_first": [
+        1.8417,
+        1.9687,
+        2.0947
+      ],
+      "z_second": [
+        1.8432,
+        1.9676,
+        2.0951
+      ]
+    }
+  }
+}

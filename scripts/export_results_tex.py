@@ -239,6 +239,28 @@ def main():
                 m.setdefault(f"res{key}{suf}" + t[1:], "\\TBD{running}")
         for t in ("sixtyeight", "ninetyfive", "n"):
             m.setdefault(f"cov{key}{t}", "\\TBD{running}")
+    # Stage 5 goal probability (kick prior, no wind, Kray curve; run_stage5.py --chain no_wind) and the extra columns of the staged
+    # table (scripts/staged_table_extras.py): launch speed, flight time and chi^2 (sigma = 1 cm) of the Bayesian stages, Stage 3 refits.
+    g5 = ROOT / "results" / "final" / "goal_probability_rounding_kick_no_wind.json"
+    if g5.exists():
+        pg = 100 * json.load(open(g5))["p_goal"]
+        m["sfiveERPgoal"] = "$>99.9$" if pg > 99.95 else fmt(pg, 1)      # 99.96 would round to a misleading 100.0
+    ex = ROOT / "results" / "final" / "staged_extras_rounding.json"
+    if ex.exists():
+        e = json.load(open(ex))
+        for st, name in (("stage4", "Four"), ("stage5", "Five"), ("stage6", "Six")):
+            d = e[st]
+            lo, med, hi = d["speed"]                       # stored as the 16 / 50 / 84 % quantiles
+            m[f"tab{name}V"], m[f"tab{name}Vlo"], m[f"tab{name}Vhi"] = fmt(med, 2), fmt(lo, 2), fmt(hi, 2)
+            lo, med, hi = d["t_goal"]
+            m[f"tab{name}T"], m[f"tab{name}Tlo"], m[f"tab{name}Thi"] = fmt(med, 3), fmt(lo, 3), fmt(hi, 3)
+            m[f"tab{name}Chimin"], m[f"tab{name}Chimed"] = fmt(d["chi2_min"], 3), fmt(d["chi2_median"], 2)
+        for rev, name in (("2", "Two"), ("5", "Five"), ("10", "Ten")):
+            m[f"tabThreeV{name}"] = fmt(e["stage3"][rev]["speed"], 2)
+            m[f"tabThreeT{name}"] = fmt(e["stage3"][rev]["t_goal"], 3)
+    for k in ["sfiveERPgoal"] + [f"tab{n}{f}" for n in ("Four", "Five", "Six") for f in ("V", "Vlo", "Vhi", "T", "Tlo", "Thi", "Chimin", "Chimed")] \
+            + [f"tabThree{f}{n}" for f in ("V", "T") for n in ("Two", "Five", "Ten")]:
+        m.setdefault(k, "\\TBD{running}")
     m["resHeadlinePrior"] = {"lognormal": "log-normal", "kick": "kick-mechanics"}[HEADLINE]
     m["resStatus"] = ("final unified model (wind included)" if use_final else
                       "final unified model still running; final-model numbers marked TBD")
