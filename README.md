@@ -60,3 +60,6 @@ number used in the report from `results/`.
 - `results/`: production summaries, goal probabilities, coverage tests, timing (raw MCMC chains are not committed)
 - `docs/`: analysis of the 2022 reference reports, literature notes, roadmap, per-stage notes
 - `references/`: reference literature (PDFs kept locally, not committed)
+
+## License
+Released under the [MIT License](LICENSE).
